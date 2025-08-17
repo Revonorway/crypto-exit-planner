@@ -280,17 +280,14 @@ function loadAssetData() {
     console.log('Strategy page: assetId from URL:', assetId);
     
     if (!assetId) {
-        console.log('Strategy page: No asset ID found, redirecting to index');
+        console.log('Strategy page: No asset ID found in URL parameters');
+        alert('Please select an asset from the main dashboard to view its strategy.');
         window.location.href = 'index.html';
         return;
     }
     
-    // Get current user from localStorage
-    const currentUser = JSON.parse(localStorage.getItem('cep_current_user'));
-    const storageKey = currentUser ? `cryptoPortfolio_${currentUser.username}` : 'cryptoPortfolio';
-    
-    // Load portfolio from localStorage using user-specific key
-    const portfolio = JSON.parse(localStorage.getItem(storageKey)) || [];
+    // Load portfolio from localStorage - use the same key as main app
+    const portfolio = JSON.parse(localStorage.getItem('portfolio')) || [];
     console.log('Strategy page: Loaded portfolio:', portfolio);
     console.log('Strategy page: Looking for asset ID:', assetId);
     
@@ -299,6 +296,7 @@ function loadAssetData() {
     
     if (!currentAsset) {
         console.error('Asset not found:', assetId, 'in portfolio:', portfolio);
+        alert(`Asset with ID "${assetId}" not found in your portfolio. Please add it first.`);
         window.location.href = 'index.html';
         return;
     }

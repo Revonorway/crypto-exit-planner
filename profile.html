@@ -219,14 +219,20 @@
     // Profile page functionality
     (function() {
       // Get current user and profile data
-      const currentUser = JSON.parse(localStorage.getItem('cep_current_user') || 'null');
-      if (!currentUser) {
+      // Check if in offline mode or if we should allow profile access
+      const isOfflineMode = localStorage.getItem('cep_offline_mode') === 'true';
+      
+      // For now, allow profile access in offline mode or when there's portfolio data
+      const portfolio = JSON.parse(localStorage.getItem('portfolio') || '[]');
+      
+      if (!isOfflineMode && portfolio.length === 0) {
+        alert('Please add some assets to your portfolio first.');
         window.location.href = 'index.html';
         return;
       }
 
       const userPrefs = JSON.parse(localStorage.getItem('cep_user_prefs') || '{}');
-      const profileKey = `user_profile_${currentUser.username}`;
+      const profileKey = `user_profile_default`; // Use default key for now
       const userProfile = JSON.parse(localStorage.getItem(profileKey) || '{}');
 
       // Elements

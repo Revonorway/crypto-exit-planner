@@ -1,0 +1,48 @@
+name: Price Monitor
+
+# Run every 5 minutes
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  # Allow manual triggering for testing
+  workflow_dispatch:
+
+jobs:
+  price-monitor:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Call Price Monitor Function
+        run: |
+          echo "🔍 Triggering price monitor function..."
+          
+          response=$(curl -s -w "%{http_code}" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -d '{}' \
+            "${{ secrets.SUPABASE_URL }}/functions/v1/price-monitor")
+          
+          http_code="${response: -3}"
+          body="${response%???}"
+          
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+          
+          if [ "$http_code" -ne 200 ]; then
+            echo "❌ Price monitor function failed with status $http_code"
+            echo "Response body: $body"
+            exit 1
+          else
+            echo "✅ Price monitor function completed successfully"
+            echo "$body" | jq '.' || echo "$body"
+          fi
+        env:
+          # These will be set as GitHub repository secrets
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+      - name: Log Results
+        if: always()
+        run: |
+          echo "Price monitoring job completed at $(date)"

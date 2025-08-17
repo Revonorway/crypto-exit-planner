@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS user_portfolios (
     updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 2. Price Alerts Table
+-- 2. Enhanced Price Alerts Table for Email Notifications
 CREATE TABLE IF NOT EXISTS price_alerts (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -28,11 +28,17 @@ CREATE TABLE IF NOT EXISTS price_alerts (
     symbol text NOT NULL,
     target_price decimal NOT NULL,
     direction text NOT NULL CHECK (direction IN ('above', 'below')),
-    alert_type text NOT NULL DEFAULT 'price' CHECK (alert_type IN ('price', 'percentage', 'exit_level')),
+    alert_type text NOT NULL DEFAULT 'exit_level' CHECK (alert_type IN ('price', 'percentage', 'exit_level')),
+    percentage_to_sell decimal(5,2), -- For exit level alerts, how much to sell
+    current_price decimal, -- Last known price when alert was created/updated
     is_active boolean DEFAULT true,
+    is_triggered boolean DEFAULT false,
     email_sent boolean DEFAULT false,
+    email_sent_at timestamp with time zone,
+    user_email text, -- Cache user email for faster processing
     created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
-    triggered_at timestamp with time zone
+    triggered_at timestamp with time zone,
+    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- 3. User Sales Table
@@ -125,6 +131,47 @@ CREATE POLICY "Users can insert own preferences" ON user_preferences FOR INSERT 
 CREATE POLICY "Users can update own preferences" ON user_preferences FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete own preferences" ON user_preferences FOR DELETE USING (auth.uid() = user_id);
 
+-- ===== DATABASE UPGRADE COMMANDS =====
+-- Run these commands if you have an existing database to upgrade the price_alerts table:
+
+-- Add new columns to existing price_alerts table
+ALTER TABLE price_alerts 
+ADD COLUMN IF NOT EXISTS percentage_to_sell decimal(5,2),
+ADD COLUMN IF NOT EXISTS current_price decimal,
+ADD COLUMN IF NOT EXISTS is_triggered boolean DEFAULT false,
+ADD COLUMN IF NOT EXISTS email_sent_at timestamp with time zone,
+ADD COLUMN IF NOT EXISTS user_email text,
+ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL;
+
+-- Update alert_type default value
+ALTER TABLE price_alerts ALTER COLUMN alert_type SET DEFAULT 'exit_level';
+
+-- Add new indexes for email system performance
+CREATE INDEX IF NOT EXISTS idx_price_alerts_triggered ON price_alerts(is_triggered, email_sent);
+CREATE INDEX IF NOT EXISTS idx_price_alerts_active_exit_levels ON price_alerts(is_active, alert_type) WHERE is_active = true AND alert_type = 'exit_level';
+
+-- ===== END UPGRADE COMMANDS =====
+
+-- ===== SCHEDULED JOB SETUP =====
+-- Enable the pg_cron extension for scheduled jobs
+-- Note: This may require superuser privileges and might not work on all Supabase plans
+-- CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+-- Schedule the price monitoring job to run every 5 minutes
+-- Note: Replace YOUR_EDGE_FUNCTION_URL with your actual deployed function URL
+-- SELECT cron.schedule(
+--   'price-monitor-job',
+--   '*/5 * * * *', -- Every 5 minutes
+--   'SELECT net.http_post(
+--     url := ''YOUR_EDGE_FUNCTION_URL/functions/v1/price-monitor'',
+--     headers := ''{"Content-Type": "application/json", "Authorization": "Bearer YOUR_ANON_KEY"}'',
+--     body := ''{}''
+--   );'
+-- );
+
+-- Alternative: Create a webhook endpoint that can be called by external cron services
+-- You can use services like cron-job.org, UptimeRobot, or GitHub Actions to call this endpoint
+
 -- Add updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -138,6 +185,7 @@ $$ language 'plpgsql';
 CREATE TRIGGER update_user_portfolios_updated_at BEFORE UPDATE ON user_portfolios FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_user_wallets_updated_at BEFORE UPDATE ON user_wallets FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_user_preferences_updated_at BEFORE UPDATE ON user_preferences FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_price_alerts_updated_at BEFORE UPDATE ON price_alerts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_user_portfolios_user_id ON user_portfolios(user_id);

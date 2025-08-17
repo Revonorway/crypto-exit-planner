@@ -98,6 +98,161 @@ function persistUserPrefs(partial) {
     localStorage.setItem(key, JSON.stringify(next));
 }
 
+// ===== PRICE ALERT FUNCTIONS =====
+
+async function createPriceAlert(ladder, ladderIndex) {
+    if (!window.isAuthenticated || !window.currentUser) {
+        console.log('📧 User not authenticated, skipping price alert creation');
+        return;
+    }
+
+    if (!window.supabase) {
+        console.log('📧 Supabase not available, skipping price alert creation');
+        return;
+    }
+
+    try {
+        console.log('📧 Creating price alert for ladder:', { ladder, ladderIndex, asset: currentAsset.symbol });
+
+        const alertData = {
+            user_id: window.currentUser.id,
+            asset_id: currentAsset.id,
+            asset_name: currentAsset.name,
+            symbol: currentAsset.symbol,
+            target_price: parseFloat(ladder.price),
+            direction: 'above', // Exit levels are typically "above" current price
+            alert_type: 'exit_level',
+            percentage_to_sell: parseFloat(ladder.percentage),
+            current_price: currentPrices[currentAsset.id] || null,
+            user_email: window.currentUser.email,
+            is_active: true,
+            is_triggered: false,
+            email_sent: false
+        };
+
+        // Check if alert already exists for this target price
+        const { data: existingAlerts, error: checkError } = await window.supabase
+            .from('price_alerts')
+            .select('id')
+            .eq('user_id', window.currentUser.id)
+            .eq('asset_id', currentAsset.id)
+            .eq('target_price', alertData.target_price)
+            .eq('alert_type', 'exit_level');
+
+        if (checkError) {
+            console.error('❌ Error checking existing alerts:', checkError);
+            return;
+        }
+
+        if (existingAlerts && existingAlerts.length > 0) {
+            // Update existing alert
+            const { error: updateError } = await window.supabase
+                .from('price_alerts')
+                .update({
+                    percentage_to_sell: alertData.percentage_to_sell,
+                    current_price: alertData.current_price,
+                    is_active: true,
+                    is_triggered: false, // Reset if it was previously triggered
+                    email_sent: false,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', existingAlerts[0].id);
+
+            if (updateError) {
+                console.error('❌ Error updating price alert:', updateError);
+                return;
+            }
+
+            console.log('✅ Price alert updated successfully');
+        } else {
+            // Create new alert
+            const { error: insertError } = await window.supabase
+                .from('price_alerts')
+                .insert([alertData]);
+
+            if (insertError) {
+                console.error('❌ Error creating price alert:', insertError);
+                return;
+            }
+
+            console.log('✅ Price alert created successfully');
+        }
+
+        // Show success notification
+        showPriceAlertNotification(`📧 Email alert set for ${currentAsset.symbol} at ${formatCurrency(ladder.price)}`);
+
+    } catch (error) {
+        console.error('❌ Error in createPriceAlert:', error);
+    }
+}
+
+async function removePriceAlert(targetPrice) {
+    if (!window.isAuthenticated || !window.currentUser || !window.supabase) {
+        return;
+    }
+
+    try {
+        const { error } = await window.supabase
+            .from('price_alerts')
+            .delete()
+            .eq('user_id', window.currentUser.id)
+            .eq('asset_id', currentAsset.id)
+            .eq('target_price', targetPrice)
+            .eq('alert_type', 'exit_level');
+
+        if (error) {
+            console.error('❌ Error removing price alert:', error);
+            return;
+        }
+
+        console.log('✅ Price alert removed successfully');
+        showPriceAlertNotification(`📧 Email alert removed for ${currentAsset.symbol} at ${formatCurrency(targetPrice)}`);
+    } catch (error) {
+        console.error('❌ Error in removePriceAlert:', error);
+    }
+}
+
+function showPriceAlertNotification(message) {
+    // Create a simple notification
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #10b981;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        z-index: 1000;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+    `;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => {
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 300);
+    }, 3000);
+}
+
+// ===== END PRICE ALERT FUNCTIONS =====
+
 // Initialize the strategy page
 document.addEventListener('DOMContentLoaded', function() {
     initializeStrategyPage();
@@ -830,6 +985,14 @@ function finishEditingLadder(index, field, value) {
         currentAsset.exitStrategy[index]._isEditing = false;
     }
     
+    // Create or update price alert for this exit level
+    if (field === 'percentage' && currentAsset.exitStrategy[index]) {
+        const ladder = currentAsset.exitStrategy[index];
+        if (ladder.price > 0 && ladder.percentage > 0) {
+            createPriceAlert(ladder, index);
+        }
+    }
+    
     // Now save and re-render
     savePortfolio();
     renderExitLadders();
@@ -1099,7 +1262,16 @@ function addExitLadder() {
 function removeExitLadder(index) {
     if (!currentAsset || !currentAsset.exitStrategy) return;
     
+    // Get the target price before removing the ladder
+    const targetPrice = currentAsset.exitStrategy[index]?.price;
+    
     currentAsset.exitStrategy.splice(index, 1);
+    
+    // Remove associated price alert if it exists
+    if (targetPrice > 0) {
+        removePriceAlert(targetPrice);
+    }
+    
     savePortfolio();
     renderExitLadders();
     updateProjections();

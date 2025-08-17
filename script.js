@@ -28,7 +28,7 @@ async function checkAuthenticationStatus() {
     }
     
     // Check if Supabase is available
-    if (typeof supabase === 'undefined') {
+    if (typeof window.supabase === 'undefined') {
         console.log('Supabase not available, running in offline mode');
         isOfflineMode = true;
         isAuthenticated = false;
@@ -37,7 +37,7 @@ async function checkAuthenticationStatus() {
     }
     
     try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await window.supabase.auth.getSession();
         
         if (session) {
             currentUser = session.user;
@@ -111,8 +111,8 @@ function updateSyncStatus() {
 
 async function handleLogout() {
     try {
-        if (!isOfflineMode && typeof supabase !== 'undefined') {
-            const { error } = await supabase.auth.signOut();
+        if (!isOfflineMode && typeof window.supabase !== 'undefined') {
+            const { error } = await window.supabase.auth.signOut();
             if (error) throw error;
         }
         

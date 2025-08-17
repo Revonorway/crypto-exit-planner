@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function initializeAuth() {
     // Check if user is already signed in
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    window.supabase.auth.getSession().then(({ data: { session } }) => {
         if (session) {
             // User is already signed in, redirect to main app
             window.location.href = 'index.html'
@@ -116,7 +116,7 @@ async function handleSignIn() {
     hideError()
 
     try {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await window.supabase.auth.signInWithPassword({
             email: email,
             password: password,
         })
@@ -156,7 +156,7 @@ async function handleSignUp() {
     hideError()
 
     try {
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error } = await window.supabase.auth.signUp({
             email: email,
             password: password,
         })
@@ -183,7 +183,7 @@ async function handleGoogleAuth() {
     hideError()
 
     try {
-        const { data, error } = await supabase.auth.signInWithOAuth({
+        const { data, error } = await window.supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
                 redirectTo: window.location.origin + '/index.html'
@@ -222,7 +222,7 @@ function getAuthErrorMessage(error) {
 }
 
 // Handle auth state changes (redirect from email confirmation, etc.)
-supabase.auth.onAuthStateChange((event, session) => {
+window.supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_IN' && session) {
         // User signed in successfully
         window.location.href = 'index.html'

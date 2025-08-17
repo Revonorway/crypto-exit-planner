@@ -5,14 +5,18 @@ const SUPABASE_URL = 'https://dlqfvubwwatsrpcyrqil.supabase.co'
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRscWZ2dWJ3d2F0c3JwY3lycWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NTIyMDEsImV4cCI6MjA3MTAyODIwMX0.OSRB_VvZdMXeXJuXRpx8f_hXbAtqW6TQK-zeLDqWv1k'
 
 // Initialize Supabase client
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+const { createClient } = supabase
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+// Make it globally available
+window.supabase = supabaseClient
 
 // Authentication state
 let currentUser = null
 let isAuthenticated = false
 
 // Initialize auth listener
-supabase.auth.onAuthStateChange((event, session) => {
+supabaseClient.auth.onAuthStateChange((event, session) => {
     if (session) {
         currentUser = session.user
         isAuthenticated = true
@@ -36,7 +40,7 @@ async function loadUserPortfolio() {
     }
     
     try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('user_portfolios')
             .select('*')
             .eq('user_id', currentUser.id)
@@ -92,7 +96,7 @@ async function migrateLocalToSupabase() {
             icon_url: asset.icon
         }))
         
-        const { error } = await supabase
+        const { error } = await supabaseClient
             .from('user_portfolios')
             .insert(portfolioData)
         
@@ -117,7 +121,7 @@ async function savePortfolio() {
     if (isAuthenticated && currentUser) {
         try {
             // Delete existing data for this user
-            await supabase
+            await supabaseClient
                 .from('user_portfolios')
                 .delete()
                 .eq('user_id', currentUser.id)
@@ -135,7 +139,7 @@ async function savePortfolio() {
                     icon_url: asset.icon
                 }))
                 
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('user_portfolios')
                     .insert(portfolioData)
                 

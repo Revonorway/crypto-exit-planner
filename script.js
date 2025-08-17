@@ -223,10 +223,19 @@ function setupAssetTableEventHandlers() {
 }
 
 async function handleLogout() {
+    console.log('🔧 handleLogout called');
     try {
+        console.log('🔧 isOfflineMode:', isOfflineMode);
+        console.log('🔧 window.supabase available:', typeof window.supabase !== 'undefined');
+        
         if (!isOfflineMode && typeof window.supabase !== 'undefined') {
+            console.log('🔧 Attempting Supabase signOut...');
             const { error } = await window.supabase.auth.signOut();
-            if (error) throw error;
+            if (error) {
+                console.error('🔧 Supabase signOut error:', error);
+                throw error;
+            }
+            console.log('🔧 Supabase signOut successful');
         }
         
         // Clear offline mode flag
@@ -238,12 +247,14 @@ async function handleLogout() {
         isOfflineMode = false;
         
         // Redirect to auth page
+        console.log('🔧 Redirecting to auth.html...');
         window.location.href = 'auth.html';
         
     } catch (error) {
-        console.error('Logout failed:', error);
+        console.error('🔧 Logout failed:', error);
         // Force logout on error
         localStorage.removeItem('cep_offline_mode');
+        console.log('🔧 Force redirecting to auth.html...');
         window.location.href = 'auth.html';
     }
 }
@@ -447,7 +458,17 @@ function initializeAuth() {
     }
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', async () => {
+        logoutBtn.addEventListener('click', async (e) => {
+            console.log('🔧 Logout button clicked');
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Close the dropdown first
+            const userMenuDropdown = document.getElementById('userMenuDropdown');
+            if (userMenuDropdown) {
+                userMenuDropdown.style.display = 'none';
+            }
+            
             await handleLogout();
         });
     }

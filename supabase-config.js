@@ -83,11 +83,44 @@ async function loadUserPortfolio() {
                 icon: item.icon_url
             }))
             
-            // Safety check: don't overwrite if we already have more data locally
+            // Safety check: don't overwrite if we already have more data locally OR if local data seems more recent
             const currentLocal = window.portfolio || JSON.parse(localStorage.getItem('portfolio') || '[]');
+            
+            // Check if local has more assets
             if (currentLocal.length > portfolioData.length) {
                 console.log('⚠️ Local portfolio has more assets than Supabase. Keeping local data.');
                 console.log('Local:', currentLocal.length, 'vs Supabase:', portfolioData.length);
+                return;
+            }
+            
+            // Check if local data seems more recent (compare specific assets)
+            let localSeemsFresher = false;
+            if (currentLocal.length === portfolioData.length) {
+                for (let i = 0; i < currentLocal.length; i++) {
+                    const localAsset = currentLocal[i];
+                    const supabaseAsset = portfolioData.find(a => a.id === localAsset.id);
+                    
+                    if (supabaseAsset) {
+                        // Compare critical fields - if local has different values, it might be fresher
+                        const localAmount = parseFloat(localAsset.amount) || 0;
+                        const supabaseAmount = parseFloat(supabaseAsset.amount) || 0;
+                        
+                        if (Math.abs(localAmount - supabaseAmount) > 0.001) {
+                            console.log('⚠️ Local asset data differs from Supabase for', localAsset.symbol);
+                            console.log('Local amount:', localAmount, 'vs Supabase amount:', supabaseAmount);
+                            
+                            // If local amount is significantly different, keep local data
+                            localSeemsFresher = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            if (localSeemsFresher) {
+                console.log('⚠️ Local portfolio data appears more recent. Keeping local data and syncing to Supabase.');
+                // Instead of loading from Supabase, push local data TO Supabase
+                await migrateLocalToSupabase();
                 return;
             }
             

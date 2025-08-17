@@ -479,6 +479,8 @@ function renderExitLadders() {
             const statusClass = ladder.executed ? 'executed' : 'planned';
             const statusText = ladder.executed ? 'Executed' : 'Planned';
             const isNewRecord = ladder.price === 0 && ladder.percentage === 0;
+            // Keep editing mode if this row is actively being edited
+            const isBeingEdited = ladder._isEditing || isNewRecord;
             
             // Calculate price increase from previous level
             let priceIncrease = '';
@@ -522,12 +524,12 @@ function renderExitLadders() {
             }
             
             return `
-                <tr class="exit-level-row ${statusClass} ${isNewRecord ? 'editing' : ''}" data-ladder-index="${index}">
+                <tr class="exit-level-row ${statusClass} ${isBeingEdited ? 'editing' : ''}" data-ladder-index="${index}">
                     <td class="level-cell" data-label="Level">
                         <span class="level-badge">L${index + 1}</span>
                     </td>
                     <td class="price-cell" data-label="Target Price">
-                        ${isNewRecord || ladder.executed ? 
+                        ${isBeingEdited || ladder.executed ? 
                             `<input 
                                type="text" 
                                class="table-input price-input" 
@@ -535,12 +537,13 @@ function renderExitLadders() {
                                value="${formatNumberInput(ladder.price)}" 
                                inputmode="decimal"
                                onblur="updateLadderField(${index}, 'price', this.value)"
+                               onfocus="startEditingLadder(${index})"
                                ${ladder.executed ? 'disabled' : ''}>` :
                             `<span class="display-value">${formatCurrency(ladder.price)}</span>`
                         }
                     </td>
                     <td class="percentage-cell" data-label="Percentage">
-                        ${isNewRecord || ladder.executed ? 
+                        ${isBeingEdited || ladder.executed ? 
                             `<input type="text" 
                                class="table-input percentage-input" 
                                placeholder="20" 
@@ -548,7 +551,8 @@ function renderExitLadders() {
                                inputmode="decimal"
                                max="100"
                                min="0"
-                               onblur="updateLadderField(${index}, 'percentage', this.value)"
+                               onblur="finishEditingLadder(${index}, 'percentage', this.value)"
+                               onfocus="startEditingLadder(${index})"
                                oninput="validatePercentageInput(this)"
                                ${ladder.executed ? 'disabled' : ''}>
                             <span class="input-suffix">%</span>` :
@@ -805,9 +809,51 @@ function cancelLevelEdits(index) {
     toggleEditLevel(index, false);
 }
 
+function startEditingLadder(index) {
+    console.log('🔧 startEditingLadder called:', index);
+    if (!currentAsset.exitStrategy || index < 0 || index >= currentAsset.exitStrategy.length) {
+        return;
+    }
+    
+    // Mark this ladder as being edited to prevent premature re-rendering
+    currentAsset.exitStrategy[index]._isEditing = true;
+}
+
+function finishEditingLadder(index, field, value) {
+    console.log('🔧 finishEditingLadder called:', { index, field, value });
+    
+    // Update the field first
+    updateLadderFieldOnly(index, field, value);
+    
+    // Clear the editing flag
+    if (currentAsset.exitStrategy && currentAsset.exitStrategy[index]) {
+        currentAsset.exitStrategy[index]._isEditing = false;
+    }
+    
+    // Now save and re-render
+    savePortfolio();
+    renderExitLadders();
+    updateProjections();
+    updateProgress();
+}
+
 function updateLadderField(index, field, value) {
     console.log('🔧 updateLadderField called:', { index, field, value });
     
+    // For price field, don't finish editing yet - keep in edit mode
+    updateLadderFieldOnly(index, field, value);
+    
+    if (field === 'price') {
+        // Keep editing mode active for price field
+        console.log('🔧 Price field updated, staying in edit mode');
+        savePortfolio(); // Save the data but don't re-render
+    } else {
+        // For other fields, finish editing
+        finishEditingLadder(index, field, value);
+    }
+}
+
+function updateLadderFieldOnly(index, field, value) {
     if (!currentAsset.exitStrategy || index < 0 || index >= currentAsset.exitStrategy.length) {
         console.log('❌ Invalid ladder update:', { hasStrategy: !!currentAsset.exitStrategy, index, length: currentAsset.exitStrategy?.length });
         return;
@@ -842,11 +888,6 @@ function updateLadderField(index, field, value) {
         currentAsset.exitStrategy[index][field] = value;
         console.log(`📝 Updated ladder ${index}.${field}: ${oldValue} → ${value}`);
     }
-    
-    savePortfolio();
-    renderExitLadders();
-    updateProjections();
-    updateProgress();
 }
 
 function calculateLadderAmount(ladderIndex) {
@@ -1044,7 +1085,8 @@ function addExitLadder() {
     
     currentAsset.exitStrategy.push({
         price: 0,
-        percentage: 0
+        percentage: 0,
+        _isEditing: true // Mark as being edited so both fields remain editable
     });
     
     console.log('🔧 Exit level added, total levels:', currentAsset.exitStrategy.length);

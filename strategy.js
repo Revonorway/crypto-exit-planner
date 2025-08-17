@@ -320,7 +320,30 @@ function loadAssetData() {
         id: currentAsset?.id, 
         symbol: currentAsset?.symbol, 
         amount: currentAsset?.amount,
-        wallets: currentAsset?.wallets?.length || 0
+        exitStrategy: currentAsset?.exitStrategy?.length || 0,
+        wallets: currentAsset?.wallets?.length || 0,
+        sales: currentAsset?.sales?.length || 0,
+        purchases: currentAsset?.purchases?.length || 0
+    });
+    
+    // Debug: Show what was loaded from localStorage vs window.portfolio
+    const localStoragePortfolio = JSON.parse(localStorage.getItem('portfolio') || '[]');
+    const localStorageAsset = localStoragePortfolio.find(a => a.id === assetId);
+    console.log('🔍 Strategy page: localStorage asset:', {
+        found: !!localStorageAsset,
+        exitStrategy: localStorageAsset?.exitStrategy?.length || 0,
+        wallets: localStorageAsset?.wallets?.length || 0,
+        sales: localStorageAsset?.sales?.length || 0,
+        purchases: localStorageAsset?.purchases?.length || 0
+    });
+    
+    const windowAsset = window.portfolio?.find(a => a.id === assetId);
+    console.log('🔍 Strategy page: window.portfolio asset:', {
+        found: !!windowAsset,
+        exitStrategy: windowAsset?.exitStrategy?.length || 0,
+        wallets: windowAsset?.wallets?.length || 0,
+        sales: windowAsset?.sales?.length || 0,
+        purchases: windowAsset?.purchases?.length || 0
     });
     
     if (!currentAsset) {

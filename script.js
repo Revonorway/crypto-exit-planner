@@ -15,6 +15,32 @@ let selectedAssets = new Set();
 let isAuthenticated = false;
 let isOfflineMode = false;
 
+// Global helper function for image error handling
+function handleImageError(imgElement, letter) {
+    // Create a simple colored background with letter
+    const canvas = document.createElement('canvas');
+    canvas.width = 24;
+    canvas.height = 24;
+    const ctx = canvas.getContext('2d');
+    
+    // Purple background
+    ctx.fillStyle = '#6366f1';
+    ctx.fillRect(0, 0, 24, 24);
+    
+    // White letter
+    ctx.fillStyle = 'white';
+    ctx.font = '12px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(letter.toUpperCase(), 12, 12);
+    
+    // Set the canvas as the image source
+    imgElement.src = canvas.toDataURL();
+    
+    // Remove the onerror to prevent infinite loop
+    imgElement.onerror = null;
+}
+
 // Authentication functions
 async function checkAuthenticationStatus() {
     // Check if in offline mode
@@ -702,7 +728,7 @@ function displaySearchResults(results) {
     } else {
         searchResults.innerHTML = results.map(crypto => `
             <div class="search-result-item" data-crypto='${JSON.stringify(crypto)}'>
-                <img src="${crypto.icon}" alt="${crypto.name}" onerror="this.src='https://via.placeholder.com/24x24/6366f1/ffffff?text=${crypto.symbol.charAt(0)}'">
+                <img src="${crypto.icon}" alt="${crypto.name}" onerror="handleImageError(this, '${crypto.symbol.charAt(0)}')">
                 <div class="asset-info">
                     <div class="asset-name">${crypto.name}</div>
                     <div class="asset-symbol">${crypto.symbol}</div>
@@ -1237,7 +1263,7 @@ function updatePortfolioDisplay() {
                             <tr class="asset-row${highlightClass}" data-asset-id="${asset.id}" title="Click to view ${asset.name} strategy">
                                 <!-- Debug: Asset ID is ${asset.id} -->
                                 <td class="asset-name-cell">
-                                    <img src="${asset.icon}" alt="${asset.name}" class="asset-icon" onerror="this.src='https://via.placeholder.com/24x24/6366f1/ffffff?text=${asset.symbol.charAt(0)}'">
+                                    <img src="${asset.icon}" alt="${asset.name}" class="asset-icon" onerror="handleImageError(this, '${asset.symbol.charAt(0)}')">
                                     <div class="asset-name-info">
                                         <span class="asset-name-text">${asset.name}</span>
                                         ${asset.passedUnexecutedLevels > 0 ? `<span class="passed-indicator">${asset.passedUnexecutedLevels} level${asset.passedUnexecutedLevels > 1 ? 's' : ''} passed!</span>` : ''}
@@ -2805,7 +2831,7 @@ function createEventHTML(event) {
     return `
         <div class="event-item" data-asset-id="${event.assetId}" ${hasSourceUrl ? `data-source-url="${event.sourceUrl}"` : ''}>
             <div class="event-asset">
-                <img src="${event.assetIcon || `https://via.placeholder.com/32x32/6366f1/ffffff?text=${event.assetSymbol?.charAt(0) || '?'}`}" alt="${event.assetName}" onerror="this.src='https://via.placeholder.com/32x32/6366f1/ffffff?text=${event.assetSymbol?.charAt(0) || '?'}'">
+                <img src="${event.assetIcon || ''}" alt="${event.assetName}" onerror="handleImageError(this, '${event.assetSymbol?.charAt(0) || '?'}')">
                 <span class="event-asset-symbol">${event.assetSymbol}</span>
             </div>
             <div class="event-content">

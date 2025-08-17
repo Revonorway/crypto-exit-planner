@@ -372,6 +372,7 @@ async function initializeApp() {
     
     // Supabase auth listener will override this if user is authenticated
     migrateCronosIdIfNeeded();
+    cleanupDuplicateAssets();
     loadSortPreference();
     updatePortfolioDisplay();
     
@@ -587,7 +588,7 @@ function hashPassword(password, salt) {
     return String(hash >>> 0);
 }
 
-// Migrate any saved Cronos entries using old id 'cronos' to CoinGecko id 'crypto-com-chain'
+// Clean up duplicate assets and migrate any saved Cronos entries
 function migrateCronosIdIfNeeded() {
     let changed = false;
     
@@ -643,6 +644,57 @@ function migrateCronosIdIfNeeded() {
     }
     
     if (changed) {
+        savePortfolio();
+    }
+}
+
+// Generic function to clean up duplicate assets (not just Cronos)
+function cleanupDuplicateAssets() {
+    const originalLength = portfolio.length;
+    const seenAssets = new Map();
+    const uniquePortfolio = [];
+    
+    portfolio.forEach(asset => {
+        const existing = seenAssets.get(asset.id);
+        
+        if (!existing) {
+            // First time seeing this asset
+            seenAssets.set(asset.id, asset);
+            uniquePortfolio.push(asset);
+        } else {
+            // Duplicate found - keep the one with more data or higher amount
+            const existingAmount = parseFloat(existing.amount) || 0;
+            const currentAmount = parseFloat(asset.amount) || 0;
+            
+            // Calculate complexity (wallets, sales, purchases, exit strategy)
+            const existingComplexity = (existing.wallets?.length || 0) + 
+                                     (existing.sales?.length || 0) + 
+                                     (existing.purchases?.length || 0) +
+                                     (existing.exitStrategy?.length || 0);
+            const currentComplexity = (asset.wallets?.length || 0) + 
+                                    (asset.sales?.length || 0) + 
+                                    (asset.purchases?.length || 0) +
+                                    (asset.exitStrategy?.length || 0);
+            
+            if (currentAmount > existingAmount || 
+                (currentAmount === existingAmount && currentComplexity > existingComplexity)) {
+                // Replace with current asset (it has more data)
+                const index = uniquePortfolio.findIndex(a => a.id === asset.id);
+                if (index !== -1) {
+                    uniquePortfolio[index] = asset;
+                    seenAssets.set(asset.id, asset);
+                }
+                console.log(`🧹 Cleaned duplicate ${asset.symbol}: kept version with amount ${currentAmount} (complexity: ${currentComplexity}) over ${existingAmount} (complexity: ${existingComplexity})`);
+            } else {
+                console.log(`🧹 Cleaned duplicate ${asset.symbol}: kept existing version with amount ${existingAmount} (complexity: ${existingComplexity}) over ${currentAmount} (complexity: ${currentComplexity})`);
+            }
+        }
+    });
+    
+    if (uniquePortfolio.length < originalLength) {
+        console.log(`🧹 Removed ${originalLength - uniquePortfolio.length} duplicate assets`);
+        portfolio.splice(0, portfolio.length, ...uniquePortfolio);
+        window.portfolio = portfolio;
         savePortfolio();
     }
 }

@@ -2050,6 +2050,7 @@ function savePortfolio() {
     const assetIndex = portfolio.findIndex(asset => asset.id === currentAsset.id);
     
     console.log('💾 Saving - Portfolio length:', portfolio.length);
+    console.log('💾 Saving - Portfolio asset IDs:', portfolio.map(a => a.id));
     console.log('💾 Saving - Looking for asset ID:', currentAsset.id);
     console.log('💾 Saving - Found at index:', assetIndex);
     console.log('💾 Saving - Asset amount before save:', currentAsset.amount);
@@ -2060,6 +2061,8 @@ function savePortfolio() {
         console.log('💾 Saving - Updated asset amount from', oldAmount, 'to', currentAsset.amount);
     } else {
         // Asset not found, add it (shouldn't happen, but safety check)
+        console.log('⚠️ Saving - Asset NOT found in portfolio! Adding as new asset.');
+        console.log('⚠️ Saving - This suggests a duplicate creation issue!');
         portfolio.push(currentAsset);
     }
     

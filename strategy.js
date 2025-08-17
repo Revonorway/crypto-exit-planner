@@ -316,6 +316,12 @@ function loadAssetData() {
     
     currentAsset = portfolio.find(asset => asset.id === assetId);
     console.log('Strategy page: Found currentAsset:', currentAsset);
+    console.log('Strategy page: currentAsset detailed:', {
+        id: currentAsset?.id, 
+        symbol: currentAsset?.symbol, 
+        amount: currentAsset?.amount,
+        wallets: currentAsset?.wallets?.length || 0
+    });
     
     if (!currentAsset) {
         console.error('Asset not found:', assetId, 'in portfolio:', portfolio);
@@ -2051,9 +2057,17 @@ function savePortfolio() {
     
     console.log('💾 Saving - Portfolio length:', portfolio.length);
     console.log('💾 Saving - Portfolio asset IDs:', portfolio.map(a => a.id));
+    console.log('💾 Saving - Portfolio assets full:', portfolio.map(a => ({id: a.id, symbol: a.symbol, amount: a.amount})));
     console.log('💾 Saving - Looking for asset ID:', currentAsset.id);
+    console.log('💾 Saving - currentAsset details:', {id: currentAsset.id, symbol: currentAsset.symbol, amount: currentAsset.amount});
     console.log('💾 Saving - Found at index:', assetIndex);
     console.log('💾 Saving - Asset amount before save:', currentAsset.amount);
+    
+    // Debug the findIndex operation step by step
+    portfolio.forEach((asset, index) => {
+        const matches = asset.id === currentAsset.id;
+        console.log(`💾 Saving - Index ${index}: ${asset.id} === ${currentAsset.id} ? ${matches}`);
+    });
     
     if (assetIndex !== -1) {
         const oldAmount = portfolio[assetIndex].amount;

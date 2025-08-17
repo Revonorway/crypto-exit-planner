@@ -2045,18 +2045,27 @@ function toggleLadderExecuted(index, checked) {
 }
 
 function savePortfolio() {
-    // Get current user from localStorage
-    const currentUser = JSON.parse(localStorage.getItem('cep_current_user'));
-    const storageKey = currentUser ? `cryptoPortfolio_${currentUser.username}` : 'cryptoPortfolio';
-    
-    const portfolio = JSON.parse(localStorage.getItem(storageKey)) || [];
+    // Use unified portfolio key for consistency with main app
+    const portfolio = window.portfolio || JSON.parse(localStorage.getItem('portfolio') || '[]');
     const assetIndex = portfolio.findIndex(asset => asset.id === currentAsset.id);
     
     if (assetIndex !== -1) {
         portfolio[assetIndex] = currentAsset;
+    } else {
+        // Asset not found, add it (shouldn't happen, but safety check)
+        portfolio.push(currentAsset);
     }
     
-    localStorage.setItem(storageKey, JSON.stringify(portfolio));
+    // Update both global variable and localStorage
+    window.portfolio = portfolio;
+    localStorage.setItem('portfolio', JSON.stringify(portfolio));
+    
+    // Call Supabase save function if available
+    if (typeof window.savePortfolioToSupabase === 'function') {
+        window.savePortfolioToSupabase();
+    }
+    
+    console.log('💾 Portfolio saved from strategy page:', currentAsset.symbol, 'amount:', currentAsset.amount);
 }
 
 async function fetchCurrentPrices() {
@@ -2863,19 +2872,25 @@ function recalculateAssetHoldings() {
         breakdown: `${initialHoldings} + ${totalPurchased} - ${totalSold} = ${finalHoldings}`
     });
     
-    // Find and update in portfolio using the correct user-specific storage key
-    const currentUser = JSON.parse(localStorage.getItem('cep_current_user'));
-    const storageKey = currentUser ? `cryptoPortfolio_${currentUser.username}` : 'cryptoPortfolio';
-    
-    const portfolio = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    // Find and update in portfolio using unified storage key
+    const portfolio = window.portfolio || JSON.parse(localStorage.getItem('portfolio') || '[]');
     const assetIndex = portfolio.findIndex(a => a.id === currentAsset.id);
     
     if (assetIndex !== -1) {
         portfolio[assetIndex].amount = currentAsset.amount;
         portfolio[assetIndex].avgPrice = currentAsset.avgPrice;
         portfolio[assetIndex].initialAmount = currentAsset.initialAmount; // Store initial amount for future calculations
-        localStorage.setItem(storageKey, JSON.stringify(portfolio));
-        console.log('💾 Updated asset in portfolio:', portfolio[assetIndex]);
+        
+        // Update both global variable and localStorage
+        window.portfolio = portfolio;
+        localStorage.setItem('portfolio', JSON.stringify(portfolio));
+        
+        // Call Supabase save function if available
+        if (typeof window.savePortfolioToSupabase === 'function') {
+            window.savePortfolioToSupabase();
+        }
+        
+        console.log('💾 Updated asset in portfolio via recalculateAssetHoldings:', portfolio[assetIndex]);
     } else {
         console.log('❌ Asset not found in portfolio:', currentAsset.id);
     }

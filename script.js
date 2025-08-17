@@ -102,11 +102,8 @@ function updateUserInterface() {
         userInitials.style.display = 'flex';
         document.getElementById('userAvatar').style.display = 'none';
         
-        // Make user menu clickable to go to auth page
-        const userMenuBtn = document.getElementById('userMenuBtn');
-        if (userMenuBtn) {
-            userMenuBtn.onclick = () => window.location.href = 'auth.html';
-        }
+        // Add sign in option to dropdown instead of overriding the click
+        updateDropdownForUnauthenticated();
     }
 }
 
@@ -121,6 +118,37 @@ function updateSyncStatus() {
             statusIndicator.textContent = 'Local Only';
             statusIndicator.className = 'sync-status local';
         }
+    }
+}
+
+function updateDropdownForUnauthenticated() {
+    const userMenuDropdown = document.getElementById('userMenuDropdown');
+    if (userMenuDropdown) {
+        // Update dropdown content for unauthenticated users
+        userMenuDropdown.innerHTML = `
+            <div class="dropdown-card">
+                <a href="auth.html" class="dropdown-item">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Sign In</span>
+                </a>
+                <button onclick="localStorage.setItem('cep_offline_mode', 'true'); location.reload()" class="dropdown-item">
+                    <i class="fas fa-wifi-slash"></i>
+                    <span>Continue Offline</span>
+                </button>
+            </div>
+        `;
+    }
+}
+
+function handleUserMenuClick(e) {
+    e.stopPropagation();
+    const userMenuDropdown = document.getElementById('userMenuDropdown');
+    const userMenuBtn = document.getElementById('userMenuBtn');
+    
+    if (userMenuDropdown && userMenuBtn) {
+        const visible = userMenuDropdown.style.display === 'block';
+        userMenuDropdown.style.display = visible ? 'none' : 'block';
+        userMenuBtn.setAttribute('aria-expanded', String(!visible));
     }
 }
 
@@ -506,6 +534,8 @@ function setupEventListeners() {
     const userMenuBtn = document.getElementById('userMenuBtn');
     const userMenuDropdown = document.getElementById('userMenuDropdown');
     if (userMenuBtn && userMenuDropdown) {
+        // Ensure we don't have duplicate event listeners
+        userMenuBtn.removeEventListener('click', handleUserMenuClick);
         // Populate avatar/name
         const avatarImg = document.getElementById('userAvatar');
         const avatarInitials = document.getElementById('userAvatarInitials');
@@ -526,12 +556,7 @@ function setupEventListeners() {
         if (nameLabel) {
             nameLabel.textContent = (prof && prof.displayName) ? prof.displayName : (currentUser ? currentUser.username : 'Profile');
         }
-        userMenuBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const visible = userMenuDropdown.style.display === 'block';
-            userMenuDropdown.style.display = visible ? 'none' : 'block';
-            userMenuBtn.setAttribute('aria-expanded', String(!visible));
-        });
+        userMenuBtn.addEventListener('click', handleUserMenuClick);
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.user-menu')) {
                 userMenuDropdown.style.display = 'none';
@@ -726,7 +751,7 @@ function showSearchResults() {
     }
 }
 
-function selectAsset(crypto) {
+async function selectAsset(crypto) {
     const selectedAsset = document.getElementById('selectedAsset');
     const assetIcon = document.getElementById('assetIcon');
     const assetName = document.getElementById('assetName');
@@ -742,6 +767,43 @@ function selectAsset(crypto) {
     
     // Store selected crypto for later use
     selectedAsset.dataset.crypto = JSON.stringify(crypto);
+    
+    // Fetch current price for this asset
+    await fetchAssetPrice(crypto.id);
+}
+
+async function fetchAssetPrice(assetId) {
+    try {
+        const apiUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${assetId}&vs_currencies=usd&include_24hr_change=true`;
+        const response = await fetch(apiUrl);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data[assetId]) {
+            const price = data[assetId].usd;
+            const change24h = data[assetId].usd_24h_change;
+            
+            // Update the current prices object
+            currentPrices[assetId] = price;
+            priceChanges24h[assetId] = change24h;
+            
+            // Update the UI to show current price
+            const avgPriceInput = document.getElementById('assetAvgPrice');
+            if (avgPriceInput && !avgPriceInput.value) {
+                avgPriceInput.value = price.toFixed(price > 1 ? 2 : 6);
+                avgPriceInput.placeholder = `Current: $${formatPrice(price)}`;
+            }
+            
+            console.log(`✅ Fetched price for ${assetId}: $${price}`);
+        }
+    } catch (error) {
+        console.warn(`Failed to fetch price for ${assetId}:`, error);
+        // Don't throw error, just log it
+    }
 }
 
 function addAssetToPortfolio() {

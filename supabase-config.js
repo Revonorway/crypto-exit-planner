@@ -58,7 +58,7 @@ async function loadUserPortfolio() {
         
         if (data && data.length > 0) {
             // Convert Supabase data back to your current format
-            portfolio = data.map(item => ({
+            const portfolioData = data.map(item => ({
                 id: item.asset_id,
                 name: item.asset_name,
                 symbol: item.symbol,
@@ -68,7 +68,11 @@ async function loadUserPortfolio() {
                 icon: item.icon_url
             }))
             
-            console.log('Loaded portfolio from Supabase:', portfolio.length, 'assets')
+            // Update both global variable and localStorage
+            window.portfolio = portfolioData;
+            localStorage.setItem('portfolio', JSON.stringify(portfolioData));
+            
+            console.log('Loaded portfolio from Supabase:', portfolioData.length, 'assets')
             // updatePortfolioDisplay() will be called after main script loads
         } else {
             // No data in Supabase yet, migrate from localStorage
@@ -83,18 +87,20 @@ async function loadUserPortfolio() {
 
 function loadLocalPortfolio() {
     // Your existing localStorage logic
-    portfolio = JSON.parse(localStorage.getItem('portfolio') || '[]')
-    console.log('Loaded portfolio from localStorage:', portfolio.length, 'assets')
+    const portfolioData = JSON.parse(localStorage.getItem('portfolio') || '[]');
+    window.portfolio = portfolioData;
+    console.log('Loaded portfolio from localStorage:', portfolioData.length, 'assets')
     // updatePortfolioDisplay() will be called after main script loads
 }
 
 async function migrateLocalToSupabase() {
-    if (!window.isAuthenticated || portfolio.length === 0) return
+    const currentPortfolio = window.portfolio || JSON.parse(localStorage.getItem('portfolio') || '[]');
+    if (!window.isAuthenticated || currentPortfolio.length === 0) return
     
     try {
-        console.log('Migrating', portfolio.length, 'assets to Supabase...')
+        console.log('Migrating', currentPortfolio.length, 'assets to Supabase...')
         
-        const portfolioData = portfolio.map(asset => ({
+        const portfolioData = currentPortfolio.map(asset => ({
             user_id: window.currentUser.id,
             asset_id: asset.id,
             asset_name: asset.name,
@@ -123,8 +129,11 @@ async function migrateLocalToSupabase() {
 
 // Enhanced save function that works with both localStorage and Supabase
 async function savePortfolio() {
+    // Get portfolio from global variable or localStorage
+    const currentPortfolio = window.portfolio || JSON.parse(localStorage.getItem('portfolio') || '[]');
+    
     // Always save to localStorage as backup
-    localStorage.setItem('portfolio', JSON.stringify(portfolio))
+    localStorage.setItem('portfolio', JSON.stringify(currentPortfolio))
     
     // Also save to Supabase if authenticated
     if (window.isAuthenticated && window.currentUser) {
@@ -136,8 +145,8 @@ async function savePortfolio() {
                 .eq('user_id', window.currentUser.id)
             
             // Insert updated data
-            if (portfolio.length > 0) {
-                const portfolioData = portfolio.map(asset => ({
+            if (currentPortfolio.length > 0) {
+                const portfolioData = currentPortfolio.map(asset => ({
                     user_id: window.currentUser.id,
                     asset_id: asset.id,
                     asset_name: asset.name,
@@ -161,3 +170,6 @@ async function savePortfolio() {
         }
     }
 }
+
+// Make the enhanced save function available globally
+window.savePortfolioToSupabase = savePortfolio;

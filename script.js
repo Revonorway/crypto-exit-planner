@@ -1,5 +1,7 @@
 // Global variables
 let portfolio = [];
+// Make portfolio available globally
+window.portfolio = portfolio;
 let currentCurrency = (JSON.parse(localStorage.getItem('cep_user_prefs')||'{}').currency) || 'NOK';
 let searchTimeout;
 let currentPrices = {};
@@ -323,7 +325,14 @@ async function initializeApp() {
     }
     
     setupEventListeners();
-    loadUserPortfolio(); // Load portfolio using user-specific key
+    
+    // Load portfolio from localStorage immediately as fallback
+    const localPortfolio = JSON.parse(localStorage.getItem('portfolio') || '[]');
+    portfolio = localPortfolio;
+    window.portfolio = portfolio;
+    console.log('Loaded initial portfolio from localStorage:', portfolio.length, 'assets');
+    
+    // Supabase auth listener will override this if user is authenticated
     migrateCronosIdIfNeeded();
     loadSortPreference();
     updatePortfolioDisplay();
@@ -493,14 +502,20 @@ function storageKeyForPortfolio() {
     return currentUser ? `cryptoPortfolio_${currentUser.username}` : 'cryptoPortfolio';
 }
 
-function loadUserPortfolio() {
-    const data = localStorage.getItem(storageKeyForPortfolio());
-    portfolio = data ? JSON.parse(data) : [];
-    updatePortfolioDisplay();
-}
+// loadUserPortfolio() function moved to supabase-config.js
 
+// Use the enhanced savePortfolio from supabase-config.js if available
 function savePortfolio() {
-    localStorage.setItem(storageKeyForPortfolio(), JSON.stringify(portfolio));
+    // Update global reference
+    window.portfolio = portfolio;
+    
+    // Always save to localStorage as backup
+    localStorage.setItem('portfolio', JSON.stringify(portfolio));
+    
+    // Call Supabase save function if available
+    if (typeof window.savePortfolioToSupabase === 'function') {
+        window.savePortfolioToSupabase();
+    }
 }
 
 function generateSalt() {

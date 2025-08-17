@@ -17,18 +17,29 @@ window.supabase = supabaseClient
 // Initialize auth listener (will be called after page loads)
 function initializeAuthListener() {
     supabaseClient.auth.onAuthStateChange((event, session) => {
+        console.log('Auth state change:', event, session ? 'has session' : 'no session');
+        
         if (session) {
             window.currentUser = session.user
             window.isAuthenticated = true
             console.log('User signed in:', window.currentUser.email)
-            // Load user's portfolio data
-            loadUserPortfolio()
+            // Only load user portfolio if we don't already have data
+            const currentPortfolio = window.portfolio || JSON.parse(localStorage.getItem('portfolio') || '[]');
+            if (currentPortfolio.length === 0) {
+                console.log('Loading portfolio from Supabase for authenticated user...');
+                loadUserPortfolio()
+            } else {
+                console.log('Portfolio already exists, skipping Supabase load');
+            }
         } else {
             window.currentUser = null
             window.isAuthenticated = false
             console.log('User signed out')
-            // Fall back to localStorage
-            loadLocalPortfolio()
+            // Don't reload portfolio if we already have data
+            const currentPortfolio = window.portfolio || JSON.parse(localStorage.getItem('portfolio') || '[]');
+            if (currentPortfolio.length === 0) {
+                loadLocalPortfolio()
+            }
         }
         
         // Update UI if available
@@ -70,9 +81,12 @@ async function loadUserPortfolio() {
             
             // Update both global variable and localStorage
             window.portfolio = portfolioData;
+            if (typeof portfolio !== 'undefined') {
+                portfolio.splice(0, portfolio.length, ...portfolioData);
+            }
             localStorage.setItem('portfolio', JSON.stringify(portfolioData));
             
-            console.log('Loaded portfolio from Supabase:', portfolioData.length, 'assets')
+            console.log('✅ Loaded portfolio from Supabase:', portfolioData.length, 'assets')
             // updatePortfolioDisplay() will be called after main script loads
         } else {
             // No data in Supabase yet, migrate from localStorage
@@ -89,7 +103,10 @@ function loadLocalPortfolio() {
     // Your existing localStorage logic
     const portfolioData = JSON.parse(localStorage.getItem('portfolio') || '[]');
     window.portfolio = portfolioData;
-    console.log('Loaded portfolio from localStorage:', portfolioData.length, 'assets')
+    if (typeof portfolio !== 'undefined') {
+        portfolio.splice(0, portfolio.length, ...portfolioData);
+    }
+    console.log('✅ Loaded portfolio from localStorage:', portfolioData.length, 'assets')
     // updatePortfolioDisplay() will be called after main script loads
 }
 

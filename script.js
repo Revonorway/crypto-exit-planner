@@ -330,7 +330,20 @@ async function initializeApp() {
     const localPortfolio = JSON.parse(localStorage.getItem('portfolio') || '[]');
     portfolio = localPortfolio;
     window.portfolio = portfolio;
-    console.log('Loaded initial portfolio from localStorage:', portfolio.length, 'assets');
+    console.log('🔧 Loaded initial portfolio from localStorage:', portfolio.length, 'assets');
+    
+    // Add debugging to track portfolio changes
+    let originalPortfolio = [...portfolio];
+    setInterval(() => {
+        if (portfolio.length !== originalPortfolio.length) {
+            console.log('🚨 Portfolio length changed!', {
+                was: originalPortfolio.length,
+                now: portfolio.length,
+                stack: new Error().stack
+            });
+            originalPortfolio = [...portfolio];
+        }
+    }, 1000);
     
     // Supabase auth listener will override this if user is authenticated
     migrateCronosIdIfNeeded();

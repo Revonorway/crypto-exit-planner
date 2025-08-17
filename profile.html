@@ -219,17 +219,21 @@
     // Profile page functionality
     (function() {
       // Get current user and profile data
-      // Check if in offline mode or if we should allow profile access
-      const isOfflineMode = localStorage.getItem('cep_offline_mode') === 'true';
+      // Allow profile access - don't be too restrictive
+      console.log('Profile page: Checking access permissions...');
       
-      // For now, allow profile access in offline mode or when there's portfolio data
-      const portfolio = JSON.parse(localStorage.getItem('portfolio') || '[]');
+      // Check if we're coming from a valid app context
+      const hasAppContext = document.referrer.includes(window.location.origin) || 
+                           localStorage.getItem('portfolio') !== null ||
+                           localStorage.getItem('cep_offline_mode') === 'true';
       
-      if (!isOfflineMode && portfolio.length === 0) {
-        alert('Please add some assets to your portfolio first.');
+      if (!hasAppContext) {
+        console.log('Profile page: No app context, redirecting to main page');
         window.location.href = 'index.html';
         return;
       }
+      
+      console.log('Profile page: Access granted');
 
       const userPrefs = JSON.parse(localStorage.getItem('cep_user_prefs') || '{}');
       const profileKey = `user_profile_default`; // Use default key for now

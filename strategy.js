@@ -282,7 +282,9 @@ function loadAssetData() {
     if (!assetId) {
         console.log('Strategy page: No asset ID found in URL parameters');
         alert('Please select an asset from the main dashboard to view its strategy.');
-        window.location.href = 'index.html';
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 1000);
         return;
     }
     
@@ -296,8 +298,20 @@ function loadAssetData() {
     
     if (!currentAsset) {
         console.error('Asset not found:', assetId, 'in portfolio:', portfolio);
-        alert(`Asset with ID "${assetId}" not found in your portfolio. Please add it first.`);
-        window.location.href = 'index.html';
+        
+        // Wait a moment for portfolio to potentially load from Supabase
+        setTimeout(() => {
+            const retryPortfolio = JSON.parse(localStorage.getItem('portfolio')) || [];
+            const retryAsset = retryPortfolio.find(asset => asset.id === assetId);
+            
+            if (!retryAsset) {
+                alert(`Asset with ID "${assetId}" not found in your portfolio. Please add it first.`);
+                window.location.href = 'index.html';
+            } else {
+                console.log('Found asset on retry, reloading page...');
+                location.reload();
+            }
+        }, 2000);
         return;
     }
     

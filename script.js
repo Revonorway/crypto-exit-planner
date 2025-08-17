@@ -473,6 +473,31 @@ function initializeAuth() {
             await handleLogout();
         });
     }
+    const cleanupBtn = document.getElementById('cleanupBtn');
+    if (cleanupBtn) {
+        cleanupBtn.addEventListener('click', async (e) => {
+            console.log('🔧 Manual cleanup button clicked');
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Close the dropdown first
+            const userMenuDropdown = document.getElementById('userMenuDropdown');
+            if (userMenuDropdown) {
+                userMenuDropdown.style.display = 'none';
+            }
+            
+            const beforeCount = portfolio.length;
+            cleanupDuplicateAssets();
+            const afterCount = portfolio.length;
+            
+            if (beforeCount !== afterCount) {
+                alert(`Cleaned up ${beforeCount - afterCount} duplicate assets!`);
+                updatePortfolioDisplay();
+            } else {
+                alert('No duplicates found to clean up.');
+            }
+        });
+    }
     const tabs = document.querySelectorAll('.auth-tab');
     tabs.forEach(tab => tab.addEventListener('click', function() {
         tabs.forEach(t => t.classList.remove('active'));
@@ -650,18 +675,26 @@ function migrateCronosIdIfNeeded() {
 
 // Generic function to clean up duplicate assets (not just Cronos)
 function cleanupDuplicateAssets() {
+    console.log('🧹 Starting duplicate cleanup...');
+    console.log('🧹 Current portfolio:', portfolio.map(a => `${a.symbol}(${a.id}): ${a.amount}`));
+    
     const originalLength = portfolio.length;
     const seenAssets = new Map();
     const uniquePortfolio = [];
     
-    portfolio.forEach(asset => {
+    portfolio.forEach((asset, index) => {
+        console.log(`🧹 Processing asset ${index}: ${asset.symbol} (${asset.id}) - amount: ${asset.amount}`);
+        
         const existing = seenAssets.get(asset.id);
         
         if (!existing) {
             // First time seeing this asset
+            console.log(`🧹 First time seeing ${asset.symbol} (${asset.id})`);
             seenAssets.set(asset.id, asset);
             uniquePortfolio.push(asset);
         } else {
+            console.log(`🧹 DUPLICATE FOUND: ${asset.symbol} (${asset.id})`);
+            
             // Duplicate found - keep the one with more data or higher amount
             const existingAmount = parseFloat(existing.amount) || 0;
             const currentAmount = parseFloat(asset.amount) || 0;
@@ -676,6 +709,9 @@ function cleanupDuplicateAssets() {
                                     (asset.purchases?.length || 0) +
                                     (asset.exitStrategy?.length || 0);
             
+            console.log(`🧹 Existing: ${existingAmount} (complexity: ${existingComplexity})`);
+            console.log(`🧹 Current: ${currentAmount} (complexity: ${currentComplexity})`);
+            
             if (currentAmount > existingAmount || 
                 (currentAmount === existingAmount && currentComplexity > existingComplexity)) {
                 // Replace with current asset (it has more data)
@@ -684,18 +720,23 @@ function cleanupDuplicateAssets() {
                     uniquePortfolio[index] = asset;
                     seenAssets.set(asset.id, asset);
                 }
-                console.log(`🧹 Cleaned duplicate ${asset.symbol}: kept version with amount ${currentAmount} (complexity: ${currentComplexity}) over ${existingAmount} (complexity: ${existingComplexity})`);
+                console.log(`🧹 ✅ Kept CURRENT version: ${asset.symbol} amount ${currentAmount} (complexity: ${currentComplexity})`);
             } else {
-                console.log(`🧹 Cleaned duplicate ${asset.symbol}: kept existing version with amount ${existingAmount} (complexity: ${existingComplexity}) over ${currentAmount} (complexity: ${currentComplexity})`);
+                console.log(`🧹 ✅ Kept EXISTING version: ${existing.symbol} amount ${existingAmount} (complexity: ${existingComplexity})`);
             }
         }
     });
     
+    console.log(`🧹 Cleanup result: ${originalLength} -> ${uniquePortfolio.length} assets`);
+    
     if (uniquePortfolio.length < originalLength) {
-        console.log(`🧹 Removed ${originalLength - uniquePortfolio.length} duplicate assets`);
+        console.log(`🧹 🎉 Removed ${originalLength - uniquePortfolio.length} duplicate assets`);
         portfolio.splice(0, portfolio.length, ...uniquePortfolio);
         window.portfolio = portfolio;
         savePortfolio();
+        console.log('🧹 ✅ Portfolio updated and saved');
+    } else {
+        console.log('🧹 ❌ No duplicates were removed');
     }
 }
 

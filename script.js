@@ -178,6 +178,48 @@ function handleUserMenuClick(e) {
     }
 }
 
+function setupAssetTableEventHandlers() {
+    // Re-ensure button event handlers are working
+    console.log('🔧 Setting up asset table event handlers...');
+    
+    // Test buttons exist
+    const editBtns = document.querySelectorAll('.edit-asset-btn');
+    const deleteBtns = document.querySelectorAll('.delete-asset-btn');
+    const strategyBtns = document.querySelectorAll('.strategy-btn');
+    const assetRows = document.querySelectorAll('.asset-row');
+    
+    console.log(`Found ${editBtns.length} edit buttons, ${deleteBtns.length} delete buttons, ${strategyBtns.length} strategy buttons, ${assetRows.length} asset rows`);
+    
+    // Re-setup theme toggle if needed
+    const themeBtn = document.getElementById('themeToggleBtn');
+    if (themeBtn && !themeBtn.onclick) {
+        console.log('🎨 Re-setting up theme toggle...');
+        const prefs = JSON.parse(localStorage.getItem('cep_user_prefs')||'{}');
+        let theme = prefs.theme || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light');
+        applyTheme(theme);
+        themeBtn.setAttribute('aria-pressed', String(theme==='dark'));
+        
+        themeBtn.addEventListener('click', () => {
+            theme = (theme === 'dark') ? 'light' : 'dark';
+            applyTheme(theme);
+            persistUserPrefs({ theme });
+            themeBtn.setAttribute('aria-pressed', String(theme==='dark'));
+            themeBtn.innerHTML = theme==='dark' ? '<i class="fas fa-sun" aria-hidden="true"></i>' : '<i class="fas fa-moon" aria-hidden="true"></i>';
+        });
+    }
+    
+    // Force re-setup user dropdown
+    const userMenuBtn = document.getElementById('userMenuBtn');
+    const userMenuDropdown = document.getElementById('userMenuDropdown');
+    if (userMenuBtn && userMenuDropdown) {
+        console.log('🔧 Re-setting up user menu dropdown...');
+        // Remove any existing handlers and re-add
+        userMenuBtn.replaceWith(userMenuBtn.cloneNode(true));
+        const newUserMenuBtn = document.getElementById('userMenuBtn');
+        newUserMenuBtn.addEventListener('click', handleUserMenuClick);
+    }
+}
+
 async function handleLogout() {
     try {
         if (!isOfflineMode && typeof window.supabase !== 'undefined') {
@@ -285,6 +327,13 @@ async function initializeApp() {
     migrateCronosIdIfNeeded();
     loadSortPreference();
     updatePortfolioDisplay();
+    
+    // Add small delay to ensure DOM is fully ready
+    setTimeout(() => {
+        console.log('🔧 Setting up event handlers...');
+        setupAssetTableEventHandlers();
+    }, 100);
+    
     await fetchCurrentPrices();
     // Initialize timeframe & compact mode
     initTimeframeToggle();
@@ -573,14 +622,16 @@ function setupEventListeners() {
             avatarInitials.style.display = 'none';
         } else {
             // Show initials fallback
-            const initials = (prof && prof.displayName ? prof.displayName : (currentUser ? currentUser.username : 'U'))
-                .split(/\s+/).map(s=>s[0]).join('').slice(0,2).toUpperCase();
+            const displayText = (prof && prof.displayName) ? prof.displayName : 
+                               (currentUser && currentUser.email) ? currentUser.email.split('@')[0] : 'User';
+            const initials = displayText.split(/\s+/).map(s=>s[0]).join('').slice(0,2).toUpperCase();
             avatarInitials.textContent = initials || 'U';
             avatarImg.style.display = 'none';
             avatarInitials.style.display = 'inline-flex';
         }
         if (nameLabel) {
-            nameLabel.textContent = (prof && prof.displayName) ? prof.displayName : (currentUser ? currentUser.username : 'Profile');
+            nameLabel.textContent = (prof && prof.displayName) ? prof.displayName : 
+                                   (currentUser && currentUser.email) ? currentUser.email.split('@')[0] : 'Profile';
         }
         userMenuBtn.addEventListener('click', handleUserMenuClick);
         document.addEventListener('click', (e) => {
@@ -801,7 +852,11 @@ async function selectAsset(crypto) {
 async function fetchAssetPrice(assetId) {
     try {
         const apiUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${assetId}&vs_currencies=usd&include_24hr_change=true`;
-        const response = await fetch(apiUrl);
+        const response = await fetch(apiUrl, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -2969,7 +3024,11 @@ async function fetchCurrentPrices() {
             const assetIds = portfolio.map(asset => asset.id).join(',');
             const apiUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${assetIds}&vs_currencies=usd&include_24hr_change=true`;
             
-            const response = await fetch(apiUrl);
+            const response = await fetch(apiUrl, {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
             
             if (response.ok) {
                 const data = await response.json();
@@ -3508,7 +3567,12 @@ function applyBulkUpdate() {
 // Market Ticker Functionality
 async function updateMarketTicker() {
     try {
-        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true');
+        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true', {
+            headers: {
+                'Accept': 'application/json'
+            },
+            mode: 'cors'
+        });
         const data = await response.json();
         
         // Update BTC
@@ -3560,7 +3624,26 @@ async function updateMarketTicker() {
         }
         
     } catch (error) {
-        console.log('Failed to fetch market data:', error);
+        console.log('Failed to fetch market data (CORS or API limit):', error);
+        
+        // Show fallback data instead of blank
+        const btcPriceEl = document.getElementById('btcPrice');
+        const btcChangeEl = document.getElementById('btcChange');
+        const ethPriceEl = document.getElementById('ethPrice');
+        const ethChangeEl = document.getElementById('ethChange');
+        const marketCapEl = document.getElementById('totalMarketCap');
+        
+        if (btcPriceEl) btcPriceEl.textContent = '$--,---';
+        if (btcChangeEl) {
+            btcChangeEl.textContent = 'API Limited';
+            btcChangeEl.className = 'ticker-change';
+        }
+        if (ethPriceEl) ethPriceEl.textContent = '$--,---';
+        if (ethChangeEl) {
+            ethChangeEl.textContent = 'API Limited';
+            ethChangeEl.className = 'ticker-change';
+        }
+        if (marketCapEl) marketCapEl.textContent = '--T';
     }
 }
 

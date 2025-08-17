@@ -311,6 +311,12 @@ function loadAssetData() {
         }
     }
     
+    // CRITICAL: Ensure window.portfolio is synchronized with what we loaded
+    if (portfolio.length > 0 && (!window.portfolio || window.portfolio.length === 0)) {
+        console.log('🔄 Synchronizing window.portfolio with loaded data...');
+        window.portfolio = portfolio;
+    }
+    
     console.log('Strategy page: Loaded portfolio:', portfolio.length, 'assets');
     console.log('Strategy page: Looking for asset ID:', assetId);
     

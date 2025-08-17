@@ -44,9 +44,11 @@ async function checkAuthenticationStatus() {
             isAuthenticated = true;
             console.log('User authenticated:', currentUser.email);
         } else {
-            // No session, redirect to auth page
-            window.location.href = 'auth.html';
-            return;
+            // No session - show auth page OR continue offline
+            console.log('No session found - user can choose auth or offline mode');
+            currentUser = null;
+            isAuthenticated = false;
+            // Don't auto-redirect - let user choose
         }
     } catch (error) {
         console.error('Auth check failed:', error);
@@ -92,6 +94,19 @@ function updateUserInterface() {
         userInitials.textContent = 'O';
         userInitials.style.display = 'flex';
         document.getElementById('userAvatar').style.display = 'none';
+    } else {
+        // Not authenticated - show sign in option
+        userNameLabel.textContent = 'Sign In';
+        const userInitials = document.getElementById('userAvatarInitials');
+        userInitials.textContent = '?';
+        userInitials.style.display = 'flex';
+        document.getElementById('userAvatar').style.display = 'none';
+        
+        // Make user menu clickable to go to auth page
+        const userMenuBtn = document.getElementById('userMenuBtn');
+        if (userMenuBtn) {
+            userMenuBtn.onclick = () => window.location.href = 'auth.html';
+        }
     }
 }
 
@@ -205,6 +220,11 @@ async function initializeApp() {
     
     // Check authentication first
     await checkAuthenticationStatus();
+    
+    // Initialize Supabase auth listener if available
+    if (typeof initializeAuthListener === 'function') {
+        initializeAuthListener();
+    }
     
     setupEventListeners();
     loadUserPortfolio(); // Load portfolio using user-specific key

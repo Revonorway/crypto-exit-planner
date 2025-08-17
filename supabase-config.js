@@ -11,30 +11,39 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 // Make it globally available
 window.supabase = supabaseClient
 
-// Authentication state
-let currentUser = null
-let isAuthenticated = false
+// Authentication state (using globals from script.js)
+// currentUser and isAuthenticated are declared in script.js
 
-// Initialize auth listener
-supabaseClient.auth.onAuthStateChange((event, session) => {
-    if (session) {
-        currentUser = session.user
-        isAuthenticated = true
-        console.log('User signed in:', currentUser.email)
-        // Load user's portfolio data
-        loadUserPortfolio()
-    } else {
-        currentUser = null
-        isAuthenticated = false
-        console.log('User signed out')
-        // Fall back to localStorage
-        loadLocalPortfolio()
-    }
-})
+// Initialize auth listener (will be called after page loads)
+function initializeAuthListener() {
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+        if (session) {
+            window.currentUser = session.user
+            window.isAuthenticated = true
+            console.log('User signed in:', window.currentUser.email)
+            // Load user's portfolio data
+            loadUserPortfolio()
+        } else {
+            window.currentUser = null
+            window.isAuthenticated = false
+            console.log('User signed out')
+            // Fall back to localStorage
+            loadLocalPortfolio()
+        }
+        
+        // Update UI if available
+        if (typeof updateUserInterface === 'function') {
+            updateUserInterface()
+        }
+        if (typeof updatePortfolioDisplay === 'function') {
+            updatePortfolioDisplay()
+        }
+    })
+}
 
 // Helper functions for gradual migration
 async function loadUserPortfolio() {
-    if (!isAuthenticated) {
+    if (!window.isAuthenticated) {
         loadLocalPortfolio()
         return
     }
@@ -43,7 +52,7 @@ async function loadUserPortfolio() {
         const { data, error } = await supabaseClient
             .from('user_portfolios')
             .select('*')
-            .eq('user_id', currentUser.id)
+            .eq('user_id', window.currentUser.id)
         
         if (error) throw error
         
@@ -60,7 +69,7 @@ async function loadUserPortfolio() {
             }))
             
             console.log('Loaded portfolio from Supabase:', portfolio.length, 'assets')
-            updatePortfolioDisplay()
+            // updatePortfolioDisplay() will be called after main script loads
         } else {
             // No data in Supabase yet, migrate from localStorage
             await migrateLocalToSupabase()
@@ -76,17 +85,17 @@ function loadLocalPortfolio() {
     // Your existing localStorage logic
     portfolio = JSON.parse(localStorage.getItem('portfolio') || '[]')
     console.log('Loaded portfolio from localStorage:', portfolio.length, 'assets')
-    updatePortfolioDisplay()
+    // updatePortfolioDisplay() will be called after main script loads
 }
 
 async function migrateLocalToSupabase() {
-    if (!isAuthenticated || portfolio.length === 0) return
+    if (!window.isAuthenticated || portfolio.length === 0) return
     
     try {
         console.log('Migrating', portfolio.length, 'assets to Supabase...')
         
         const portfolioData = portfolio.map(asset => ({
-            user_id: currentUser.id,
+            user_id: window.currentUser.id,
             asset_id: asset.id,
             asset_name: asset.name,
             symbol: asset.symbol,
@@ -118,18 +127,18 @@ async function savePortfolio() {
     localStorage.setItem('portfolio', JSON.stringify(portfolio))
     
     // Also save to Supabase if authenticated
-    if (isAuthenticated && currentUser) {
+    if (window.isAuthenticated && window.currentUser) {
         try {
             // Delete existing data for this user
             await supabaseClient
                 .from('user_portfolios')
                 .delete()
-                .eq('user_id', currentUser.id)
+                .eq('user_id', window.currentUser.id)
             
             // Insert updated data
             if (portfolio.length > 0) {
                 const portfolioData = portfolio.map(asset => ({
-                    user_id: currentUser.id,
+                    user_id: window.currentUser.id,
                     asset_id: asset.id,
                     asset_name: asset.name,
                     symbol: asset.symbol,

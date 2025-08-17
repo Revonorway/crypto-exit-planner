@@ -1006,6 +1006,7 @@ function updateSalesSummary() {
 }
 
 function addExitLadder() {
+    console.log('🔧 addExitLadder called');
     if (!currentAsset) return;
     
     if (!currentAsset.exitStrategy) {
@@ -1017,6 +1018,7 @@ function addExitLadder() {
         percentage: 0
     });
     
+    console.log('🔧 Exit level added, total levels:', currentAsset.exitStrategy.length);
     savePortfolio();
     renderExitLadders();
     updateProjections();
@@ -1047,28 +1049,7 @@ function validatePercentageInput(input) {
     }
 }
 
-function updateLadderField(index, field, value) {
-    if (!currentAsset || !currentAsset.exitStrategy || !currentAsset.exitStrategy[index]) return;
-    
-    const parsed = parseNumber(value);
-    // Clamp percentage between 0 and 100
-    if (field === 'percentage') {
-        const clampedValue = Math.max(0, Math.min(100, parsed));
-        currentAsset.exitStrategy[index][field] = clampedValue;
-        // Update the input to show the clamped value
-        if (clampedValue !== parsed) {
-            setTimeout(() => renderExitLadders(), 0);
-        }
-    } else if (field === 'price') {
-        currentAsset.exitStrategy[index][field] = parsed;
-    } else {
-        currentAsset.exitStrategy[index][field] = parsed;
-    }
-    savePortfolio();
-    renderExitLadders();
-    updateProjections();
-    updateProgress();
-}
+// Duplicate updateLadderField function removed - using the enhanced version above
 function getSales() {
     return currentAsset.sales || [];
 }

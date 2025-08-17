@@ -487,7 +487,16 @@ function initializeAuth() {
             }
             
             const beforeCount = portfolio.length;
+            
+            // Try standard cleanup first
             cleanupDuplicateAssets();
+            
+            // If that didn't work, try more aggressive cleanup
+            if (portfolio.length === beforeCount) {
+                console.log('🧹 Standard cleanup found no duplicates, trying aggressive cleanup...');
+                aggressiveCleanupDuplicates();
+            }
+            
             const afterCount = portfolio.length;
             
             if (beforeCount !== afterCount) {
@@ -722,7 +731,9 @@ function cleanupDuplicateAssets() {
                 }
                 console.log(`🧹 ✅ Kept CURRENT version: ${asset.symbol} amount ${currentAmount} (complexity: ${currentComplexity})`);
             } else {
+                // Keep existing, discard current (this is a duplicate removal)
                 console.log(`🧹 ✅ Kept EXISTING version: ${existing.symbol} amount ${existingAmount} (complexity: ${existingComplexity})`);
+                console.log(`🧹 🗑️ DISCARDED duplicate: ${asset.symbol} amount ${currentAmount} (complexity: ${currentComplexity})`);
             }
         }
     });
@@ -737,6 +748,61 @@ function cleanupDuplicateAssets() {
         console.log('🧹 ✅ Portfolio updated and saved');
     } else {
         console.log('🧹 ❌ No duplicates were removed');
+    }
+}
+
+// More aggressive cleanup that uses symbol instead of just ID
+function aggressiveCleanupDuplicates() {
+    console.log('🧹🔥 Starting AGGRESSIVE cleanup...');
+    console.log('🧹🔥 Current portfolio:', portfolio.map(a => `${a.symbol}(${a.id}): ${a.amount}`));
+    
+    const originalLength = portfolio.length;
+    const seenAssets = new Map(); // Use symbol as key instead of ID
+    const uniquePortfolio = [];
+    
+    portfolio.forEach((asset, index) => {
+        console.log(`🧹🔥 Processing asset ${index}: ${asset.symbol} (${asset.id}) - amount: ${asset.amount}`);
+        
+        // Use symbol instead of ID to catch duplicates with same symbol but potentially different IDs
+        const key = asset.symbol.toLowerCase();
+        const existing = seenAssets.get(key);
+        
+        if (!existing) {
+            console.log(`🧹🔥 First time seeing ${asset.symbol}`);
+            seenAssets.set(key, asset);
+            uniquePortfolio.push(asset);
+        } else {
+            console.log(`🧹🔥 DUPLICATE SYMBOL FOUND: ${asset.symbol}`);
+            
+            const existingAmount = parseFloat(existing.amount) || 0;
+            const currentAmount = parseFloat(asset.amount) || 0;
+            
+            // Always keep the one with higher amount
+            if (currentAmount > existingAmount) {
+                const index = uniquePortfolio.findIndex(a => a.symbol.toLowerCase() === key);
+                if (index !== -1) {
+                    uniquePortfolio[index] = asset;
+                    seenAssets.set(key, asset);
+                }
+                console.log(`🧹🔥 ✅ REPLACED with higher amount: ${asset.symbol} ${currentAmount} > ${existingAmount}`);
+            } else {
+                console.log(`🧹🔥 🗑️ DISCARDED lower amount: ${asset.symbol} ${currentAmount} <= ${existingAmount}`);
+            }
+        }
+    });
+    
+    console.log(`🧹🔥 Aggressive cleanup result: ${originalLength} -> ${uniquePortfolio.length} assets`);
+    
+    if (uniquePortfolio.length < originalLength) {
+        console.log(`🧹🔥 🎉 AGGRESSIVELY removed ${originalLength - uniquePortfolio.length} duplicate assets`);
+        portfolio.splice(0, portfolio.length, ...uniquePortfolio);
+        window.portfolio = portfolio;
+        savePortfolio();
+        console.log('🧹🔥 ✅ Portfolio updated and saved');
+        return true;
+    } else {
+        console.log('🧹🔥 ❌ No duplicates were removed');
+        return false;
     }
 }
 

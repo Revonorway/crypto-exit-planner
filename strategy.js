@@ -288,9 +288,30 @@ function loadAssetData() {
         return;
     }
     
-    // Load portfolio from localStorage - use the same key as main app
-    const portfolio = JSON.parse(localStorage.getItem('portfolio')) || [];
-    console.log('Strategy page: Loaded portfolio:', portfolio);
+    // Load portfolio from multiple sources for maximum reliability
+    let portfolio = window.portfolio || JSON.parse(localStorage.getItem('portfolio') || '[]');
+    
+    // If still empty, try legacy keys as fallback
+    if (portfolio.length === 0) {
+        const legacyKeys = ['cryptoPortfolio', 'cep_portfolio'];
+        const currentUser = JSON.parse(localStorage.getItem('cep_current_user') || 'null');
+        if (currentUser) {
+            legacyKeys.push(`cryptoPortfolio_${currentUser.username}`);
+        }
+        
+        for (const key of legacyKeys) {
+            const legacyData = JSON.parse(localStorage.getItem(key) || '[]');
+            if (legacyData.length > 0) {
+                portfolio = legacyData;
+                console.log('📦 Found portfolio in legacy storage:', key);
+                // Save to unified key
+                localStorage.setItem('portfolio', JSON.stringify(portfolio));
+                break;
+            }
+        }
+    }
+    
+    console.log('Strategy page: Loaded portfolio:', portfolio.length, 'assets');
     console.log('Strategy page: Looking for asset ID:', assetId);
     
     currentAsset = portfolio.find(asset => asset.id === assetId);

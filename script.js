@@ -339,8 +339,21 @@ async function initializeApp() {
             console.log('🚨 Portfolio length changed!', {
                 was: originalPortfolio.length,
                 now: portfolio.length,
-                stack: new Error().stack
+                timestamp: new Date().toISOString()
             });
+            
+            // If portfolio was unexpectedly cleared, try to restore from localStorage
+            if (portfolio.length === 0 && originalPortfolio.length > 0) {
+                console.log('🔧 Portfolio was cleared! Attempting to restore...');
+                const backup = JSON.parse(localStorage.getItem('portfolio') || '[]');
+                if (backup.length > 0) {
+                    portfolio.splice(0, 0, ...backup);
+                    window.portfolio = portfolio;
+                    console.log('✅ Portfolio restored from localStorage backup');
+                    updatePortfolioDisplay();
+                }
+            }
+            
             originalPortfolio = [...portfolio];
         }
     }, 1000);
@@ -512,7 +525,8 @@ function handleLogin() {
 }
 
 function storageKeyForPortfolio() {
-    return currentUser ? `cryptoPortfolio_${currentUser.username}` : 'cryptoPortfolio';
+    // Always use unified 'portfolio' key for consistency
+    return 'portfolio';
 }
 
 // loadUserPortfolio() function moved to supabase-config.js
@@ -3196,13 +3210,8 @@ function getBasePrice(symbol) {
 
 
 
-function savePortfolio() {
-    if (currentUser) {
-        localStorage.setItem(storageKeyForPortfolio(), JSON.stringify(portfolio));
-    } else {
-        localStorage.setItem('cryptoPortfolio', JSON.stringify(portfolio));
-    }
-}
+// savePortfolio function is now handled at the top of the file
+// This duplicate function has been removed to prevent conflicts
 
 
 

@@ -2090,8 +2090,26 @@ function savePortfolio() {
     }
     
     console.log('💾 Portfolio saved from strategy page:', currentAsset.symbol, 'amount:', currentAsset.amount);
-    console.log('💾 Full portfolio in localStorage after save:', JSON.parse(localStorage.getItem('portfolio') || '[]'));
-    console.log('💾 Current asset state:', currentAsset);
+    console.log('💾 Current asset detailed state:', {
+        id: currentAsset.id,
+        symbol: currentAsset.symbol,
+        amount: currentAsset.amount,
+        exitStrategy: currentAsset.exitStrategy?.length || 0,
+        wallets: currentAsset.wallets?.length || 0,
+        sales: currentAsset.sales?.length || 0,
+        purchases: currentAsset.purchases?.length || 0
+    });
+    
+    // Check what actually got saved to localStorage
+    const savedPortfolio = JSON.parse(localStorage.getItem('portfolio') || '[]');
+    const savedAsset = savedPortfolio.find(a => a.id === currentAsset.id);
+    console.log('💾 What actually got saved to localStorage:', {
+        found: !!savedAsset,
+        exitStrategy: savedAsset?.exitStrategy?.length || 0,
+        wallets: savedAsset?.wallets?.length || 0,
+        sales: savedAsset?.sales?.length || 0,
+        purchases: savedAsset?.purchases?.length || 0
+    });
 }
 
 async function fetchCurrentPrices() {

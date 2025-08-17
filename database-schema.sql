@@ -11,6 +11,9 @@ CREATE TABLE IF NOT EXISTS user_portfolios (
     amount decimal NOT NULL DEFAULT 0,
     avg_price decimal NOT NULL DEFAULT 0,
     exit_strategy jsonb DEFAULT '[]'::jsonb,
+    wallets jsonb DEFAULT '[]'::jsonb,
+    sales jsonb DEFAULT '[]'::jsonb,
+    purchases jsonb DEFAULT '[]'::jsonb,
     icon_url text,
     created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL

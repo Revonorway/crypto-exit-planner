@@ -80,6 +80,9 @@ async function loadUserPortfolio() {
                 amount: parseFloat(item.amount),
                 avgPrice: parseFloat(item.avg_price),
                 exitStrategy: item.exit_strategy || [],
+                wallets: item.wallets || [],
+                sales: item.sales || [],
+                purchases: item.purchases || [],
                 icon: item.icon_url
             }))
             
@@ -171,6 +174,9 @@ async function migrateLocalToSupabase() {
             amount: asset.amount,
             avg_price: asset.avgPrice,
             exit_strategy: asset.exitStrategy,
+            wallets: asset.wallets,
+            sales: asset.sales,
+            purchases: asset.purchases,
             icon_url: asset.icon
         }))
         
@@ -224,6 +230,9 @@ async function savePortfolio() {
                     amount: asset.amount,
                     avg_price: asset.avgPrice,
                     exit_strategy: asset.exitStrategy,
+                    wallets: asset.wallets,
+                    sales: asset.sales,
+                    purchases: asset.purchases,
                     icon_url: asset.icon
                 }))
                 

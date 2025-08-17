@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Exit Planner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="app">
+        <!-- Market Conditions Bar -->
+        <div class="market-ticker-bar">
+            <div class="market-ticker-content">
+                <div class="market-ticker-item">
+                    <span class="ticker-symbol">BTC</span>
+                    <span class="ticker-price" id="btcPrice">0</span>
+                    <span class="ticker-change" id="btcChange">0%</span>
+                </div>
+                <div class="market-ticker-item">
+                    <span class="ticker-symbol">ETH</span>
+                    <span class="ticker-price" id="ethPrice">0</span>
+                    <span class="ticker-change" id="ethChange">0%</span>
+                </div>
+                <div class="market-ticker-item">
+                    <span class="ticker-symbol">Alt Season</span>
+                    <span class="ticker-indicator" id="altSeasonIndicator">Neutral</span>
+                </div>
+                <div class="market-ticker-item">
+                    <span class="ticker-symbol">Market Cap</span>
+                    <span class="ticker-price" id="totalMarketCap">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <div class="brand">
+                        <i class="fas fa-chart-line brand-icon"></i>
+                        <span class="brand-text">Exit Planner</span>
+                    </div>
+
+                </div>
+                <div class="header-right">
+                    <!-- Essential Controls Only -->
+                    <div class="header-controls">
+                        <div class="currency-toggle">
+                            <button class="currency-btn" data-currency="USD">USD</button>
+                            <button class="currency-btn active" data-currency="NOK">NOK</button>
+                        </div>
+                        
+                        <button id="themeToggleBtn" class="btn btn-secondary" aria-pressed="false" title="Toggle theme">
+                            <i class="fas fa-moon" aria-hidden="true"></i>
+                        </button>
+                        
+                        <button id="refreshBtn" class="btn btn-secondary" title="Refresh prices">
+                            <i class="fas fa-rotate"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- User Menu -->
+                    <div class="user-menu">
+                        <button id="userMenuBtn" class="user-btn" aria-haspopup="true" aria-expanded="false" title="User menu">
+                            <img id="userAvatar" alt="User avatar" class="avatar-img"/>
+                            <span id="userAvatarInitials" class="avatar-initials" aria-hidden="true">P</span>
+                            <span id="userNameLabel">Paul</span>
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <div id="userMenuDropdown" class="dropdown" style="display:none;">
+                            <div class="dropdown-card">
+                                                       <a href="profile.html" class="dropdown-item">
+                           <i class="fas fa-user"></i>
+                           <span>Profile & Settings</span>
+                       </a>
+                                <button id="logoutBtn" class="dropdown-item">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                    <span>Sign out</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden elements for functionality -->
+                    <button id="loginHeaderBtn" class="btn btn-primary" style="display:none;"><i class="fas fa-sign-in-alt"></i> Login</button>
+                    
+                    <!-- Hidden elements for timeframe and compact mode -->
+                    <div style="display:none;">
+                        <div class="segmented small" id="timeframeToggle" role="group" aria-label="Timeframe">
+                            <button data-timeframe="baseline" class="seg-btn active" title="Since last open">BL</button>
+                            <button data-timeframe="24h" class="seg-btn" title="24 hours">24h</button>
+                            <button data-timeframe="7d" class="seg-btn" title="7 days">7d</button>
+                        </div>
+                        <button id="compactToggleBtn" class="btn btn-secondary" title="Compact mode"><i class="fas fa-compress-alt"></i></button>
+                        <span id="lastUpdatedLabel" class="last-updated" title="Last updated"></span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        
+
+        <!-- Main Dashboard -->
+        <main class="main-content">
+            <!-- Exit Planning Dashboard (CMC/CG Style) -->
+            <section class="market-overview">
+                <div class="market-grid">
+                    <!-- Portfolio Value & P&L Card -->
+                    <div class="market-card primary-metric">
+                        <div class="metric-value tabular" id="marketPortfolioValue">0</div>
+                        <div class="metric-label">Portfolio Value</div>
+                        <div class="metric-trend">
+                            <div class="metric-breakdown">
+                                <span class="trend-indicator" id="marketPortfolioTrend">↗ 0.0%</span>
+                                <span class="pnl-indicator" id="marketPnLIndicator">P&L 0</span>
+                            </div>
+                            <svg class="metric-chart" id="marketPortfolioChart"></svg>
+                        </div>
+                    </div>
+
+                    <!-- Exit Plan Progress Card with Strategy Info -->
+                    <div class="market-card secondary-metric">
+                        <div class="metric-value tabular" id="marketExitValue">0</div>
+                        <div class="metric-label">Projected Exit Value</div>
+                        <div class="metric-trend">
+                            <div class="metric-breakdown">
+                                <span class="trend-value" id="marketRealizedValue">0</span>
+                                <span class="trend-label">Already Realized</span>
+                            </div>
+                        </div>
+                        <div class="metric-trend">
+                            <div class="exit-strategy-compact">
+                                <div class="strategy-row">
+                                    <span class="exit-progress-mini">
+                                        <span id="marketExitProgress">0%</span> exit progress
+                                    </span>
+                                    <span class="ladders-info">
+                                        <span id="marketActiveLadders">0</span> active levels
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="exit-progress-bar-full">
+                                <div class="progress-fill" id="marketStrategyProgress" style="width: 0%"></div>
+                            </div>
+                            <svg class="metric-chart" id="marketExitChart"></svg>
+                        </div>
+                    </div>
+
+                    <!-- Closest to Exit Section -->
+                    <div class="market-card trending-section">
+                        <div class="section-header">
+                            <span class="section-icon">🎯</span>
+                            <span class="section-title">Closest to Exit</span>
+                        </div>
+                        <div class="trending-list" id="marketClosestExits">
+                            <!-- Will be populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Net After Tax & Tithe Card -->
+                    <div class="market-card trending-section">
+                        <div class="section-header">
+                            <span class="section-icon">💰</span>
+                            <span class="section-title">Net Take-Home</span>
+                        </div>
+                        <div class="financial-breakdown">
+                            <div class="breakdown-item">
+                                <span class="breakdown-label">Net Amount</span>
+                                <span class="breakdown-value tabular" id="marketNetAmount">0</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <span class="breakdown-label">Tax Due (22%)</span>
+                                <span class="breakdown-value tabular negative" id="marketTaxDue">0</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <span class="breakdown-label">Tithe (10%)</span>
+                                <span class="breakdown-value tabular muted" id="marketTithe">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+            </section>
+
+
+
+            
+
+            <!-- Portfolio Assets -->
+            <section class="portfolio-assets">
+                <div class="assets-card">
+                    <div class="assets-header">
+                        <div class="assets-title">
+                            <h2>Your Assets</h2>
+                            <span class="assets-hint">Click any asset to view exit strategy</span>
+                        </div>
+                        <div class="assets-controls">
+                            <div class="sort-controls">
+                                <select id="sortSelect" class="sort-select">
+                                    <option value="name">Sort by Name</option>
+                                    <option value="value">Sort by Value</option>
+                                    <option value="24h-change">Sort by 24h Change</option>
+                                    <option value="pnl">Sort by PnL %</option>
+                                    <option value="next-target">Sort by Next Target</option>
+                                    <option value="target-distance">Sort by Target Distance</option>
+                                </select>
+                            </div>
+
+                            <button id="toggleAddAsset" class="btn btn-primary"><i class="fas fa-plus"></i> Add Asset</button>
+                        </div>
+                    </div>
+                    <div id="assetsList" class="assets-list">
+                        <div class="empty-state">
+                            <i class="fas fa-coins"></i>
+                            <p>No assets added yet. Search and add your first crypto asset above.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+
+            <!-- Add Asset Modal -->
+            <div class="modal-overlay" id="addAssetModal" style="display: none;">
+                <div class="modal-content add-asset-modal">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-plus-circle"></i> Add New Asset</h3>
+                        <button class="modal-close" id="closeAddAssetModal">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="search-container">
+                            <div class="search-input-wrapper">
+                                <i class="fas fa-search search-icon"></i>
+                                <input type="text" id="assetSearch" placeholder="Search for cryptocurrency (e.g., Bitcoin, BTC, Cardano, ADA)" class="search-input">
+                            </div>
+                            <div class="search-hint">
+                                <i class="fas fa-info-circle"></i>
+                                <span>Type at least 2 characters to search from 1000+ cryptocurrencies</span>
+                            </div>
+                            <div id="searchResults" class="search-results"></div>
+                        </div>
+                        <div id="selectedAsset" class="selected-asset" style="display: none;">
+                            <div class="selected-asset-header">
+                                <div class="asset-info">
+                                    <img id="assetIcon" src="" alt="" class="asset-icon">
+                                    <div class="asset-details">
+                                        <h4 id="assetName"></h4>
+                                        <span id="assetSymbol" class="asset-symbol-badge"></span>
+                                    </div>
+                                </div>
+                                <button class="btn-text" onclick="resetAssetForm()">
+                                    <i class="fas fa-edit"></i> Change Asset
+                                </button>
+                            </div>
+                            <div class="asset-form">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="assetAmount">
+                                            <i class="fas fa-coins"></i> Amount Owned
+                                        </label>
+                                        <input type="number" id="assetAmount" placeholder="0.00" step="0.000001" min="0">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="assetAvgPrice">
+                                            <i class="fas fa-dollar-sign"></i> Average Purchase Price (USD)
+                                        </label>
+                                        <input type="number" id="assetAvgPrice" placeholder="0.00" step="0.01" min="0">
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button id="cancelAddAssetBtn" class="btn btn-secondary">Cancel</button>
+                                    <button id="addAssetBtn" class="btn btn-primary">
+                                        <i class="fas fa-plus"></i> Add to Portfolio
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Auth Overlay -->
+    <div id="authOverlay" class="auth-overlay" style="display:none;">
+        <div class="auth-card">
+            <h2>Welcome</h2>
+            <p class="auth-sub">Sign in or create an account to secure your data</p>
+            <div class="auth-tabs">
+                <button class="auth-tab active" data-tab="login">Login</button>
+                <button class="auth-tab" data-tab="register">Register</button>
+            </div>
+            <div class="auth-forms">
+                <div class="auth-form" id="loginForm">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="loginUsername" placeholder="Your username">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="loginPassword" placeholder="Your password">
+                    </div>
+                    <button id="loginBtn" class="btn btn-primary" style="width:100%">Login</button>
+                    <p id="loginError" class="auth-error" style="display:none;"></p>
+                </div>
+                <div class="auth-form" id="registerForm" style="display:none;">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="registerUsername" placeholder="Choose a username">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="registerPassword" placeholder="Create a password">
+                    </div>
+                    <button id="registerBtn" class="btn btn-primary" style="width:100%">Create Account</button>
+                    <p id="registerError" class="auth-error" style="display:none;"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="supabase-config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
+
+
+

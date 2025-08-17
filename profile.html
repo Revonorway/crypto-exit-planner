@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile & Settings - Crypto Exit Planner</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <div class="header-left">
+        <div class="brand">
+          <i class="fas fa-chart-line brand-icon"></i>
+          <span class="brand-text">Exit Planner</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <a class="btn btn-secondary" href="index.html">
+          <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="profile-container">
+      
+      <!-- Profile Header -->
+      <section class="profile-header">
+        <div class="profile-avatar-section">
+          <div class="avatar-preview-container">
+            <div class="avatar-preview" id="avatarPreview">
+              <img id="avatarImage" alt="User avatar" style="display: none;">
+              <span id="avatarInitials" class="avatar-initials-large">P</span>
+              <div class="avatar-overlay">
+                <i class="fas fa-camera"></i>
+                <span>Change Photo</span>
+              </div>
+            </div>
+            <div class="avatar-upload-zone" id="avatarUploadZone">
+              <div class="upload-icon">
+                <i class="fas fa-cloud-upload-alt"></i>
+              </div>
+              <div class="upload-text">
+                <span class="upload-primary">Drop your photo here</span>
+                <span class="upload-secondary">or click to browse</span>
+              </div>
+              <input type="file" id="avatarFileInput" accept="image/*" hidden>
+            </div>
+          </div>
+        </div>
+        <div class="profile-info">
+          <h1 id="profileDisplayTitle">Paul</h1>
+          <p class="profile-username" id="profileUsernameDisplay">@paul</p>
+          <p class="profile-email" id="profileEmailDisplay">paul@example.com</p>
+        </div>
+      </section>
+
+      <!-- Profile Form Sections -->
+      <div class="profile-sections">
+        
+        <!-- Account Information -->
+        <section class="profile-card">
+          <div class="card-header">
+            <h2><i class="fas fa-user"></i> Account Information</h2>
+          </div>
+          <div class="card-content">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="profileUsername">Username</label>
+                <input type="text" id="profileUsername" disabled />
+                <small class="form-help">Username cannot be changed</small>
+              </div>
+              <div class="form-group">
+                <label for="profileDisplayName">Display Name</label>
+                <input type="text" id="profileDisplayName" placeholder="Enter your display name" />
+              </div>
+              <div class="form-group">
+                <label for="profileEmail">Email Address</label>
+                <input type="email" id="profileEmail" placeholder="Enter your email address" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Security -->
+        <section class="profile-card">
+          <div class="card-header">
+            <h2><i class="fas fa-shield-alt"></i> Security</h2>
+          </div>
+          <div class="card-content">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="currentPassword">Current Password</label>
+                <input type="password" id="currentPassword" placeholder="Enter current password" />
+              </div>
+              <div class="form-group">
+                <label for="newPassword">New Password</label>
+                <input type="password" id="newPassword" placeholder="Enter new password" />
+              </div>
+              <div class="form-group">
+                <label for="confirmPassword">Confirm New Password</label>
+                <input type="password" id="confirmPassword" placeholder="Confirm new password" />
+              </div>
+            </div>
+            <div class="security-actions">
+              <button id="changePasswordBtn" class="btn btn-secondary">
+                <i class="fas fa-key"></i> Change Password
+              </button>
+              <button id="forgotPasswordBtn" class="btn btn-outline">
+                <i class="fas fa-question-circle"></i> Forgot Password?
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Preferences -->
+        <section class="profile-card">
+          <div class="card-header">
+            <h2><i class="fas fa-cog"></i> Preferences</h2>
+          </div>
+          <div class="card-content">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="prefCurrency">Default Currency</label>
+                <select id="prefCurrency">
+                  <option value="USD">USD - US Dollar</option>
+                  <option value="NOK">NOK - Norwegian Krone</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="prefLocale">Locale (dates & numbers)</label>
+                <select id="prefLocale">
+                  <option value="en-GB">English (UK)</option>
+                  <option value="en-US">English (US)</option>
+                  <option value="no-NO">Norwegian</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="prefTheme">Theme</label>
+                <select id="prefTheme">
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="profile-actions">
+        <button id="saveProfileBtn" class="btn btn-primary">
+          <i class="fas fa-save"></i> Save All Changes
+        </button>
+        <button id="resetProfileBtn" class="btn btn-secondary">
+          <i class="fas fa-undo"></i> Reset Changes
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Avatar Cropper Modal -->
+  <div class="modal-overlay" id="cropperModal" style="display: none;">
+    <div class="modal-content cropper-modal">
+      <div class="modal-header">
+        <h3>Crop Your Avatar</h3>
+        <button class="modal-close" id="closeCropperBtn">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="cropper-viewport">
+          <img id="cropImage" alt="Image to crop" />
+        </div>
+        <div class="cropper-controls">
+          <label class="control-group">
+            <span>Zoom</span>
+            <input id="cropZoom" type="range" min="0.5" max="3" step="0.01" value="1" class="range-slider"/>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelCropBtn" class="btn btn-secondary">Cancel</button>
+        <button id="applyCropBtn" class="btn btn-primary">Apply & Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Forgot Password Modal -->
+  <div class="modal-overlay" id="forgotPasswordModal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Reset Password</h3>
+        <button class="modal-close" id="closeForgotPasswordBtn">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>Enter your email address and we'll send you a link to reset your password.</p>
+        <div class="form-group">
+          <label for="resetEmail">Email Address</label>
+          <input type="email" id="resetEmail" placeholder="Enter your email address" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelResetBtn" class="btn btn-secondary">Cancel</button>
+        <button id="sendResetBtn" class="btn btn-primary">Send Reset Link</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    // Profile page functionality
+    (function() {
+      // Get current user and profile data
+      const currentUser = JSON.parse(localStorage.getItem('cep_current_user') || 'null');
+      if (!currentUser) {
+        window.location.href = 'index.html';
+        return;
+      }
+
+      const userPrefs = JSON.parse(localStorage.getItem('cep_user_prefs') || '{}');
+      const profileKey = `user_profile_${currentUser.username}`;
+      const userProfile = JSON.parse(localStorage.getItem(profileKey) || '{}');
+
+      // Elements
+      const avatarPreview = document.getElementById('avatarPreview');
+      const avatarImage = document.getElementById('avatarImage');
+      const avatarInitials = document.getElementById('avatarInitials');
+      const avatarUploadZone = document.getElementById('avatarUploadZone');
+      const avatarFileInput = document.getElementById('avatarFileInput');
+
+      // Initialize form fields
+      function initializeForm() {
+        document.getElementById('profileUsername').value = currentUser.username;
+        document.getElementById('profileDisplayName').value = userProfile.displayName || '';
+        document.getElementById('profileEmail').value = userProfile.email || '';
+        
+        document.getElementById('prefCurrency').value = userPrefs.currency || 'NOK';
+        document.getElementById('prefLocale').value = userPrefs.locale || 'en-GB';
+        document.getElementById('prefTheme').value = userPrefs.theme || 'light';
+
+        updateAvatarDisplay();
+        updateProfileHeader();
+      }
+
+      // Update avatar display
+      function updateAvatarDisplay() {
+        const avatarUrl = userProfile.avatarUrl;
+        if (avatarUrl && avatarUrl.startsWith('data:image/')) {
+          avatarImage.src = avatarUrl;
+          avatarImage.style.display = 'block';
+          avatarInitials.style.display = 'none';
+        } else {
+          avatarImage.style.display = 'none';
+          avatarInitials.style.display = 'flex';
+          const displayName = userProfile.displayName || currentUser.username;
+          avatarInitials.textContent = displayName.charAt(0).toUpperCase();
+        }
+      }
+
+      // Update profile header
+      function updateProfileHeader() {
+        const displayName = userProfile.displayName || currentUser.username;
+        document.getElementById('profileDisplayTitle').textContent = displayName;
+        document.getElementById('profileUsernameDisplay').textContent = `@${currentUser.username}`;
+        document.getElementById('profileEmailDisplay').textContent = userProfile.email || 'No email set';
+      }
+
+      // Avatar upload functionality
+      avatarUploadZone.addEventListener('click', () => {
+        avatarFileInput.click();
+      });
+
+      avatarPreview.addEventListener('click', () => {
+        avatarFileInput.click();
+      });
+
+      // Drag and drop functionality
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        avatarUploadZone.addEventListener(eventName, preventDefaults, false);
+      });
+
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      ['dragenter', 'dragover'].forEach(eventName => {
+        avatarUploadZone.addEventListener(eventName, highlight, false);
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        avatarUploadZone.addEventListener(eventName, unhighlight, false);
+      });
+
+      function highlight(e) {
+        avatarUploadZone.classList.add('drag-over');
+      }
+
+      function unhighlight(e) {
+        avatarUploadZone.classList.remove('drag-over');
+      }
+
+      avatarUploadZone.addEventListener('drop', handleDrop, false);
+
+      function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        handleFiles(files);
+      }
+
+      avatarFileInput.addEventListener('change', (e) => {
+        handleFiles(e.target.files);
+      });
+
+      function handleFiles(files) {
+        if (files.length > 0) {
+          const file = files[0];
+          if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => openCropper(e.target.result);
+            reader.readAsDataURL(file);
+          }
+        }
+      }
+
+      // Cropper functionality
+      const cropperModal = document.getElementById('cropperModal');
+      const cropImage = document.getElementById('cropImage');
+      const cropZoom = document.getElementById('cropZoom');
+      let startX = 0, startY = 0, posX = 0, posY = 0, scale = 1, dragging = false;
+
+      function openCropper(src) {
+        cropImage.src = src;
+        posX = posY = 0;
+        scale = 1;
+        cropZoom.value = 1;
+        applyTransform();
+        cropperModal.style.display = 'flex';
+      }
+
+      function applyTransform() {
+        cropImage.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+      }
+
+      cropImage.addEventListener('mousedown', (e) => {
+        dragging = true;
+        startX = e.clientX - posX;
+        startY = e.clientY - posY;
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        posX = e.clientX - startX;
+        posY = e.clientY - startY;
+        applyTransform();
+      });
+
+      window.addEventListener('mouseup', () => {
+        dragging = false;
+      });
+
+      cropZoom.addEventListener('input', () => {
+        scale = parseFloat(cropZoom.value);
+        applyTransform();
+      });
+
+      document.getElementById('closeCropperBtn').addEventListener('click', () => {
+        cropperModal.style.display = 'none';
+      });
+
+      document.getElementById('cancelCropBtn').addEventListener('click', () => {
+        cropperModal.style.display = 'none';
+      });
+
+      document.getElementById('applyCropBtn').addEventListener('click', () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 300;
+        canvas.height = 300;
+        const ctx = canvas.getContext('2d');
+        
+        const imgObj = new Image();
+        imgObj.crossOrigin = 'anonymous';
+        imgObj.src = cropImage.src;
+        
+        imgObj.onload = function() {
+          const sx = (-posX) / scale;
+          const sy = (-posY) / scale;
+          const sWidth = 300 / scale;
+          const sHeight = 300 / scale;
+          
+          ctx.drawImage(imgObj, sx, sy, sWidth, sHeight, 0, 0, 300, 300);
+          const dataUrl = canvas.toDataURL('image/png');
+          
+          userProfile.avatarUrl = dataUrl;
+          updateAvatarDisplay();
+          cropperModal.style.display = 'none';
+        };
+      });
+
+      // Forgot password functionality
+      const forgotPasswordModal = document.getElementById('forgotPasswordModal');
+      
+      document.getElementById('forgotPasswordBtn').addEventListener('click', () => {
+        forgotPasswordModal.style.display = 'flex';
+      });
+
+      document.getElementById('closeForgotPasswordBtn').addEventListener('click', () => {
+        forgotPasswordModal.style.display = 'none';
+      });
+
+      document.getElementById('cancelResetBtn').addEventListener('click', () => {
+        forgotPasswordModal.style.display = 'none';
+      });
+
+      document.getElementById('sendResetBtn').addEventListener('click', () => {
+        const email = document.getElementById('resetEmail').value;
+        if (email) {
+          alert('Password reset link would be sent to: ' + email);
+          forgotPasswordModal.style.display = 'none';
+        } else {
+          alert('Please enter your email address');
+        }
+      });
+
+      // Change password functionality
+      document.getElementById('changePasswordBtn').addEventListener('click', () => {
+        const current = document.getElementById('currentPassword').value;
+        const newPass = document.getElementById('newPassword').value;
+        const confirm = document.getElementById('confirmPassword').value;
+
+        if (!current || !newPass || !confirm) {
+          alert('Please fill in all password fields');
+          return;
+        }
+
+        if (newPass !== confirm) {
+          alert('New passwords do not match');
+          return;
+        }
+
+        if (newPass.length < 6) {
+          alert('Password must be at least 6 characters long');
+          return;
+        }
+
+        // In a real app, this would make an API call
+        alert('Password changed successfully');
+        document.getElementById('currentPassword').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('confirmPassword').value = '';
+      });
+
+      // Save profile functionality
+      document.getElementById('saveProfileBtn').addEventListener('click', () => {
+        const profileData = {
+          displayName: document.getElementById('profileDisplayName').value.trim(),
+          email: document.getElementById('profileEmail').value.trim(),
+          avatarUrl: userProfile.avatarUrl || ''
+        };
+
+        const prefsData = {
+          currency: document.getElementById('prefCurrency').value,
+          theme: document.getElementById('prefTheme').value,
+          locale: document.getElementById('prefLocale').value
+        };
+
+        // Save profile
+        localStorage.setItem(profileKey, JSON.stringify(profileData));
+        
+        // Save preferences
+        const currentPrefs = JSON.parse(localStorage.getItem('cep_user_prefs') || '{}');
+        localStorage.setItem('cep_user_prefs', JSON.stringify({ ...currentPrefs, ...prefsData }));
+
+        // Update current user profile reference
+        Object.assign(userProfile, profileData);
+
+        updateProfileHeader();
+        alert('Profile saved successfully');
+      });
+
+      // Reset form functionality
+      document.getElementById('resetProfileBtn').addEventListener('click', () => {
+        if (confirm('Are you sure you want to reset all changes?')) {
+          initializeForm();
+        }
+      });
+
+      // Initialize the form
+      initializeForm();
+
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exit Strategy - Crypto Exit Planner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app">
+        <!-- Asset Ticker Bar -->
+        <div class="asset-ticker-bar">
+            <div class="asset-ticker-content">
+                <div class="asset-ticker-item">
+                    <span class="ticker-symbol">24h</span>
+                    <span class="ticker-change" id="assetChange24h">-</span>
+                </div>
+                <div class="asset-ticker-item">
+                    <span class="ticker-symbol">7d</span>
+                    <span class="ticker-change" id="assetChange7d">-</span>
+                </div>
+                <div class="asset-ticker-item">
+                    <span class="ticker-symbol">30d</span>
+                    <span class="ticker-change" id="assetChange30d">-</span>
+                </div>
+                <div class="asset-ticker-item">
+                    <span class="ticker-symbol">Market Cap</span>
+                    <span class="ticker-price" id="assetMarketCap">-</span>
+                </div>
+                <div class="asset-ticker-item">
+                    <span class="ticker-symbol">24h Volume</span>
+                    <span class="ticker-price" id="assetVolume24h">-</span>
+                </div>
+                <div class="asset-ticker-item">
+                    <span class="ticker-symbol">Circulating</span>
+                    <span class="ticker-price" id="assetCirculatingSupply">-</span>
+                </div>
+                <div class="asset-ticker-item">
+                    <span class="ticker-symbol">Total Supply</span>
+                    <span class="ticker-price" id="assetTotalSupply">-</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <div class="brand">
+                        <i class="fas fa-chart-line brand-icon"></i>
+                        <span class="brand-text">Exit Planner</span>
+                    </div>
+                    <nav class="main-nav">
+                        <a href="index.html" class="nav-link">
+                            <i class="fas fa-arrow-left"></i>
+                            <span>Back to Portfolio</span>
+                        </a>
+                    </nav>
+                    <div class="page-title">
+                        <h1 id="strategyTitle">Exit Strategy</h1>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="header-controls">
+                        <div class="currency-toggle">
+                            <button class="currency-btn active" data-currency="USD">USD</button>
+                            <button class="currency-btn" data-currency="NOK">NOK</button>
+                        </div>
+                        
+                        <div class="price-source-indicator">
+                            <span class="price-source-label">Live</span>
+                            <span class="price-source-status" id="priceSourceStatus">CoinGecko</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Strategy Overview (Clean Design) -->
+            <section class="market-overview" style="margin-top: 1.5rem;">
+                <div class="market-grid">
+
+                    <!-- Portfolio Value Card with Asset Info -->
+                    <div class="market-card primary-metric">
+                        <div class="asset-header-inline">
+                            <img id="assetIconLarge" src="" alt="" class="asset-icon-small">
+                            <div class="asset-info-inline">
+                                <span id="assetNameLarge" class="asset-name-small"></span>
+                                <span id="assetSymbolLarge" class="asset-symbol-small"></span>
+                            </div>
+                            <span class="current-price-small" id="currentPriceLarge">0</span>
+                        </div>
+                        <div class="metric-value tabular" id="currentValue">0</div>
+                        <div class="metric-label">Portfolio Value</div>
+                        <div class="metric-trend">
+                            <div class="metric-breakdown">
+                                <span class="breakdown-label">Holdings:</span>
+                                <span class="breakdown-value" id="holdingsAmount">0</span>
+                            </div>
+                            <div class="metric-breakdown">
+                                <span class="breakdown-label">Avg Cost:</span>
+                                <span class="breakdown-value" id="avgPrice">0</span>
+                            </div>
+                            <div class="metric-breakdown">
+                                <span class="breakdown-label">P&L:</span>
+                                <span class="breakdown-value" id="totalPnL">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Exit Strategy Card -->
+                    <div class="market-card secondary-metric">
+                        <div class="metric-value tabular" id="totalExitValue">0</div>
+                        <div class="metric-label">Projected Exit Value</div>
+                        <div class="metric-trend">
+                            <div class="exit-strategy-compact">
+                                <div class="strategy-row">
+                                    <span class="exit-progress-mini">
+                                        <span id="totalToExit">0%</span> to exit
+                                    </span>
+                                    <span class="remaining-info">
+                                        <span id="remainingAmount">100%</span> remaining
+                                    </span>
+                                </div>
+                                <div class="strategy-row">
+                                    <span class="next-target-info">
+                                        Avg Exit: <span id="avgExitPrice" class="target-price">0</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sales & Performance Card -->
+                    <div class="market-card trending-section">
+                        <div class="section-header">
+                            <span class="section-icon">📊</span>
+                            <span class="section-title">Sales & Performance</span>
+                        </div>
+                        <div class="trending-list">
+                            <div class="trending-item">
+                                <span class="trending-label">
+                                    Net Realized
+                                    <i class="fas fa-info-circle help-icon" title="Profit/loss from completed sales (sales value minus original cost)"></i>
+                                </span>
+                                <span class="trending-value" id="totalRealized">0</span>
+                            </div>
+                            <div class="trending-item">
+                                <span class="trending-label">
+                                    Gross Sales
+                                    <i class="fas fa-info-circle help-icon" title="Total value received from all sales (before deducting costs)"></i>
+                                </span>
+                                <span class="trending-value" id="totalSalesValueOverview">0</span>
+                            </div>
+                            <div class="trending-item">
+                                <span class="trending-label">Next Target</span>
+                                <span class="trending-value" id="nextTarget">None</span>
+                            </div>
+                            <div class="trending-item">
+                                <span class="trending-label">Distance</span>
+                                <span class="trending-value" id="distanceToNext">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Net Take-Home Card -->
+                    <div class="market-card trending-section">
+                        <div class="section-header">
+                            <span class="section-icon">💰</span>
+                            <span class="section-title">Net Take-Home</span>
+                        </div>
+                        <div class="trending-list">
+                            <div class="trending-item">
+                                <span class="trending-label">Net Amount</span>
+                                <span class="trending-value positive" id="totalNetAmountOverview">0</span>
+                            </div>
+                            <div class="trending-item">
+                                <span class="trending-label">Tax Due (22%)</span>
+                                <span class="trending-value negative" id="totalTaxDueOverview">0</span>
+                            </div>
+                            <div class="trending-item">
+                                <span class="trending-label">Tithe (10%)</span>
+                                <span class="trending-value muted" id="totalTitheOverview">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Wallet Management Section -->
+            <section class="wallet-management-section">
+                <div class="strategy-table-card">
+                    <div class="table-header">
+                        <div class="table-title">
+                            <h2>Wallet Distribution</h2>
+                            <p class="table-subtitle">Manage your holdings across different wallets and storage locations</p>
+                        </div>
+                        <div class="table-actions">
+                            <button id="addWalletBtn" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Add Wallet
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="walletManagement" class="wallet-management">
+                        <table class="wallets-table" style="display: none;">
+                            <thead>
+                                <tr>
+                                    <th>Wallet Name</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>% of Total</th>
+                                    <th>Value</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Wallet rows will be generated here -->
+                            </tbody>
+                        </table>
+                        
+                        <div class="empty-state-modern" style="display: block;">
+                            <div class="empty-icon">
+                                <i class="fas fa-wallet"></i>
+                            </div>
+                            <h3>No Wallets Added</h3>
+                            <p>Add wallets to track your holdings distribution across different storage locations</p>
+                        </div>
+                        
+                        <div class="wallet-summary" style="display: none;">
+                            <div class="summary-grid">
+                                <div class="summary-item">
+                                    <span class="summary-label">Total Distributed</span>
+                                    <span class="summary-value" id="totalDistributedAmount">0</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">Undistributed</span>
+                                    <span class="summary-value" id="undistributedAmount">0</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">Total Wallets</span>
+                                    <span class="summary-value" id="totalWalletsCount">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Exit Strategy Section -->
+            <section class="exit-strategy-section">
+                <div class="strategy-table-card">
+                    <div class="table-header">
+                        <div class="table-title">
+                            <h2>Exit Strategy</h2>
+                            <p class="table-subtitle">Set price targets and percentages for your exit plan</p>
+                        </div>
+                        <div class="table-actions">
+                            <div class="segmented-toggle" role="group" aria-label="Percentage mode">
+                                <button id="modeRemainingBtn" class="seg-btn active" aria-pressed="true" aria-label="Percentage of remaining">% of Remaining</button>
+                                <button id="modeTotalBtn" class="seg-btn" aria-pressed="false" aria-label="Percentage of total">% of Total</button>
+                            </div>
+                            <button id="addLadderBtn" class="btn btn-primary" aria-label="Add exit level">
+                                <i class="fas fa-plus" aria-hidden="true"></i> Add Level
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="exitLadders" class="exit-ladders">
+                        <table class="exit-levels-table" style="display: none;">
+                            <thead>
+                                <tr>
+                                    <th>Level</th>
+                                    <th>Target Price</th>
+                                    <th id="percentageHeader">% of Remaining</th>
+                                    <th>Price Increase %</th>
+                                    <th>Distance to Target</th>
+                                    <th>Amount</th>
+                                    <th>Value</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Exit level rows will be generated here -->
+                            </tbody>
+                        </table>
+                        <div class="empty-state-modern">
+                            <div class="empty-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <h3>No Exit Levels Set</h3>
+                            <p>Create your first exit level to start planning your strategy</p>
+                            <div class="empty-instructions">
+                                <div class="instruction-row">
+                                    <span class="instruction-label">Price:</span>
+                                    <span class="instruction-text">Target price in USD when you want to sell</span>
+                                </div>
+                                <div class="instruction-row">
+                                    <span class="instruction-label">Percentage:</span>
+                                    <span class="instruction-text">% of remaining holdings to sell at this price</span>
+                                </div>
+                                <div class="instruction-row">
+                                    <span class="instruction-label">Example:</span>
+                                    <span class="instruction-text">1 BTC → 20% at $50,000 = sell 0.2 BTC</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sales (Realized) Section -->
+            <section class="sales-section">
+                <div class="strategy-table-card">
+                    <div class="table-header">
+                        <div class="table-title">
+                            <h2>Sales (Realized)</h2>
+                            <p class="table-subtitle">Track your completed sales and realized gains</p>
+                        </div>
+                        <div class="table-actions">
+                            <button id="addSaleBtn" class="btn btn-primary"><i class="fas fa-plus"></i> Add Sale</button>
+                        </div>
+                    </div>
+                    
+                    <div id="salesList" class="table-container">
+                        <table class="sales-table" style="display: none;">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Wallet</th>
+                                    <th class="amount">Amount Sold</th>
+                                    <th class="price">Price</th>
+                                    <th class="value">Value</th>
+                                    <th class="tax">Tax (22%)</th>
+                                    <th class="tithe">Tithe (10%)</th>
+                                    <th class="net">Net After Tax & Tithe</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Sales will be populated here -->
+                            </tbody>
+                        </table>
+                        <div class="empty-state-modern">
+                            <div class="empty-icon">
+                                <i class="fas fa-receipt"></i>
+                            </div>
+                            <h3>No Sales Recorded</h3>
+                            <p>Start tracking your realized gains by adding your first sale</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Purchases & Staking Section -->
+            <section class="purchases-section">
+                <div class="strategy-table-card">
+                    <div class="table-header">
+                        <div class="table-title">
+                            <h2>Purchases & Staking</h2>
+                            <p class="table-subtitle">Track additions to your holdings and cost basis</p>
+                        </div>
+                        <div class="table-actions">
+                            <button id="addPurchaseBtn" class="btn btn-success"><i class="fas fa-plus"></i> Add Purchase</button>
+                        </div>
+                    </div>
+                    
+                    <div id="purchasesList" class="table-container">
+                        <table class="purchases-table" style="display: none;">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Wallet</th>
+                                    <th class="type">Type</th>
+                                    <th class="amount">Amount Added</th>
+                                    <th class="price">Price</th>
+                                    <th class="value">Value</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Purchases will be populated here -->
+                            </tbody>
+                        </table>
+                        <div class="empty-state-modern">
+                            <div class="empty-icon">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                            <h3>No Purchases Recorded</h3>
+                            <p>Add your purchase history to track your cost basis and investment timeline</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Purchases Summary -->
+                    <div id="purchasesSummary" class="summary-section" style="display: none;">
+                        <div class="summary-header">
+                            <h3>Purchase Summary</h3>
+                        </div>
+                        <div class="summary-grid">
+                            <div class="summary-metric">
+                                <span class="summary-label">Total Investment</span>
+                                <span class="summary-value" id="totalPurchasesValue">0</span>
+                            </div>
+                            <div class="summary-metric">
+                                <span class="summary-label">Total Amount Added</span>
+                                <span class="summary-value" id="totalPurchasesAmount">0</span>
+                            </div>
+                            <div class="summary-metric">
+                                <span class="summary-label">Average Purchase Price</span>
+                                <span class="summary-value" id="avgPurchasePrice">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="strategy.js"></script>
+</body>
+</html>

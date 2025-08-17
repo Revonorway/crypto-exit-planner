@@ -505,7 +505,7 @@ function renderExitLadders() {
                                placeholder="e.g., 50000" 
                                value="${formatNumberInput(ladder.price)}" 
                                inputmode="decimal"
-                               onchange="updateLadderField(${index}, 'price', this.value)"
+                               onblur="updateLadderField(${index}, 'price', this.value)"
                                ${ladder.executed ? 'disabled' : ''}>` :
                             `<span class="display-value">${formatCurrency(ladder.price)}</span>`
                         }
@@ -706,7 +706,7 @@ function toggleEditLevel(index, enableEdit) {
                placeholder="e.g., 50000" 
                value="${formatNumberInput(level.price)}" 
                inputmode="decimal"
-               onchange="updateLadderField(${index}, 'price', this.value)">
+               onblur="updateLadderField(${index}, 'price', this.value)">
         `;
         
         percentageCell.innerHTML = `
@@ -717,7 +717,7 @@ function toggleEditLevel(index, enableEdit) {
                inputmode="decimal"
                max="100"
                min="0"
-               onchange="updateLadderField(${index}, 'percentage', this.value)"
+               onblur="updateLadderField(${index}, 'percentage', this.value)"
                oninput="validatePercentageInput(this)">
             <span class="input-suffix">%</span>
         `;

@@ -174,6 +174,13 @@ async function migrateLocalToSupabase() {
             icon_url: asset.icon
         }))
         
+        // Delete existing data first to avoid duplicates
+        await supabaseClient
+            .from('user_portfolios')
+            .delete()
+            .eq('user_id', window.currentUser.id)
+            
+        // Then insert the new data
         const { error } = await supabaseClient
             .from('user_portfolios')
             .insert(portfolioData)

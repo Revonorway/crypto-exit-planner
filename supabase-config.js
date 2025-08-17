@@ -108,11 +108,30 @@ async function loadUserPortfolio() {
                         const localAmount = parseFloat(localAsset.amount) || 0;
                         const supabaseAmount = parseFloat(supabaseAsset.amount) || 0;
                         
-                        if (Math.abs(localAmount - supabaseAmount) > 0.001) {
+                        // Also compare nested data lengths to detect recent changes
+                        const localExitLevels = localAsset.exitStrategy?.length || 0;
+                        const supabaseExitLevels = supabaseAsset.exitStrategy?.length || 0;
+                        const localWallets = localAsset.wallets?.length || 0;
+                        const supabaseWallets = supabaseAsset.wallets?.length || 0;
+                        const localSales = localAsset.sales?.length || 0;
+                        const supabaseSales = supabaseAsset.sales?.length || 0;
+                        const localPurchases = localAsset.purchases?.length || 0;
+                        const supabasePurchases = supabaseAsset.purchases?.length || 0;
+                        
+                        if (Math.abs(localAmount - supabaseAmount) > 0.001 ||
+                            localExitLevels !== supabaseExitLevels ||
+                            localWallets !== supabaseWallets ||
+                            localSales !== supabaseSales ||
+                            localPurchases !== supabasePurchases) {
+                            
                             console.log('⚠️ Local asset data differs from Supabase for', localAsset.symbol);
                             console.log('Local amount:', localAmount, 'vs Supabase amount:', supabaseAmount);
+                            console.log('Local exit levels:', localExitLevels, 'vs Supabase:', supabaseExitLevels);
+                            console.log('Local wallets:', localWallets, 'vs Supabase:', supabaseWallets);
+                            console.log('Local sales:', localSales, 'vs Supabase:', supabaseSales);
+                            console.log('Local purchases:', localPurchases, 'vs Supabase:', supabasePurchases);
                             
-                            // If local amount is significantly different, keep local data
+                            // If local has any different data, keep local data
                             localSeemsFresher = true;
                             break;
                         }

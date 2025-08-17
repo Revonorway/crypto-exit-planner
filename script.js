@@ -331,6 +331,7 @@ async function initializeApp() {
     portfolio = localPortfolio;
     window.portfolio = portfolio;
     console.log('🔧 Loaded initial portfolio from localStorage:', portfolio.length, 'assets');
+    console.log('🔧 Full portfolio loaded on main page:', localPortfolio);
     
     // Add debugging to track portfolio changes
     let originalPortfolio = [...portfolio];

@@ -2049,8 +2049,15 @@ function savePortfolio() {
     const portfolio = window.portfolio || JSON.parse(localStorage.getItem('portfolio') || '[]');
     const assetIndex = portfolio.findIndex(asset => asset.id === currentAsset.id);
     
+    console.log('💾 Saving - Portfolio length:', portfolio.length);
+    console.log('💾 Saving - Looking for asset ID:', currentAsset.id);
+    console.log('💾 Saving - Found at index:', assetIndex);
+    console.log('💾 Saving - Asset amount before save:', currentAsset.amount);
+    
     if (assetIndex !== -1) {
+        const oldAmount = portfolio[assetIndex].amount;
         portfolio[assetIndex] = currentAsset;
+        console.log('💾 Saving - Updated asset amount from', oldAmount, 'to', currentAsset.amount);
     } else {
         // Asset not found, add it (shouldn't happen, but safety check)
         portfolio.push(currentAsset);
@@ -2066,6 +2073,8 @@ function savePortfolio() {
     }
     
     console.log('💾 Portfolio saved from strategy page:', currentAsset.symbol, 'amount:', currentAsset.amount);
+    console.log('💾 Full portfolio in localStorage after save:', JSON.parse(localStorage.getItem('portfolio') || '[]'));
+    console.log('💾 Current asset state:', currentAsset);
 }
 
 async function fetchCurrentPrices() {

@@ -590,6 +590,8 @@ function hashPassword(password, salt) {
 // Migrate any saved Cronos entries using old id 'cronos' to CoinGecko id 'crypto-com-chain'
 function migrateCronosIdIfNeeded() {
     let changed = false;
+    
+    // First, migrate cronos to crypto-com-chain
     portfolio = portfolio.map(asset => {
         if (asset.id === 'cronos') {
             changed = true;
@@ -597,6 +599,49 @@ function migrateCronosIdIfNeeded() {
         }
         return asset;
     });
+    
+    // Then, remove any duplicates (keep the one with higher amount/more data)
+    const seenAssets = new Map();
+    const uniquePortfolio = [];
+    
+    portfolio.forEach(asset => {
+        const existing = seenAssets.get(asset.id);
+        
+        if (!existing) {
+            // First time seeing this asset
+            seenAssets.set(asset.id, asset);
+            uniquePortfolio.push(asset);
+        } else {
+            // Duplicate found - keep the one with more data or higher amount
+            const existingAmount = parseFloat(existing.amount) || 0;
+            const currentAmount = parseFloat(asset.amount) || 0;
+            
+            // Keep the asset with higher amount, or more wallets/transactions
+            const existingComplexity = (existing.wallets?.length || 0) + (existing.sales?.length || 0) + (existing.purchases?.length || 0);
+            const currentComplexity = (asset.wallets?.length || 0) + (asset.sales?.length || 0) + (asset.purchases?.length || 0);
+            
+            if (currentAmount > existingAmount || currentComplexity > existingComplexity) {
+                // Replace with current asset
+                const index = uniquePortfolio.findIndex(a => a.id === asset.id);
+                if (index !== -1) {
+                    uniquePortfolio[index] = asset;
+                    seenAssets.set(asset.id, asset);
+                }
+                console.log(`🔧 Removed duplicate ${asset.symbol}: kept version with amount ${currentAmount} over ${existingAmount}`);
+                changed = true;
+            } else {
+                console.log(`🔧 Removed duplicate ${asset.symbol}: kept existing version with amount ${existingAmount} over ${currentAmount}`);
+                changed = true;
+            }
+        }
+    });
+    
+    if (uniquePortfolio.length !== portfolio.length) {
+        portfolio = uniquePortfolio;
+        window.portfolio = portfolio;
+        changed = true;
+    }
+    
     if (changed) {
         savePortfolio();
     }

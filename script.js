@@ -132,6 +132,9 @@ function updateUserInterface() {
             userInitials.textContent = displayName.charAt(0).toUpperCase();
         }
         
+        // Restore authenticated dropdown menu
+        updateDropdownForAuthenticated();
+        
         // Show sync status
         updateSyncStatus();
         
@@ -142,6 +145,9 @@ function updateUserInterface() {
         userInitials.textContent = 'O';
         userInitials.style.display = 'flex';
         document.getElementById('userAvatar').style.display = 'none';
+        
+        // Show offline dropdown options
+        updateDropdownForOffline();
     } else {
         // Not authenticated - show sign in option
         userNameLabel.textContent = 'Sign In';
@@ -165,6 +171,106 @@ function updateSyncStatus() {
         } else {
             statusIndicator.textContent = 'Local Only';
             statusIndicator.className = 'sync-status local';
+        }
+    }
+}
+
+function updateDropdownForAuthenticated() {
+    const userMenuDropdown = document.getElementById('userMenuDropdown');
+    if (userMenuDropdown) {
+        // Restore authenticated dropdown content
+        userMenuDropdown.innerHTML = `
+            <div class="dropdown-card">
+                <a href="profile.html" class="dropdown-item">
+                    <i class="fas fa-user"></i>
+                    <span>Profile & Settings</span>
+                </a>
+                <button id="cleanupBtn" class="dropdown-item">
+                    <i class="fas fa-broom"></i>
+                    <span>Cleanup Duplicates</span>
+                </button>
+                <button id="logoutBtn" class="dropdown-item">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Sign out</span>
+                </button>
+            </div>
+        `;
+        
+        // Re-attach event listeners since we recreated the elements
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async (e) => {
+                console.log('🔧 Logout button clicked');
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Close the dropdown first
+                userMenuDropdown.style.display = 'none';
+                
+                await handleLogout();
+            });
+        }
+        
+        const cleanupBtn = document.getElementById('cleanupBtn');
+        if (cleanupBtn) {
+            cleanupBtn.addEventListener('click', async (e) => {
+                console.log('🔧 Manual cleanup button clicked');
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Close the dropdown first
+                userMenuDropdown.style.display = 'none';
+                
+                const removed = aggressiveCleanupDuplicates();
+                if (removed) {
+                    updatePortfolioDisplay();
+                    updatePortfolioOverview();
+                    alert('✅ Duplicate cleanup completed! Removed duplicate assets.');
+                } else {
+                    alert('ℹ️ No duplicates found to clean up.');
+                }
+            });
+        }
+    }
+}
+
+function updateDropdownForOffline() {
+    const userMenuDropdown = document.getElementById('userMenuDropdown');
+    if (userMenuDropdown) {
+        // Update dropdown content for offline mode
+        userMenuDropdown.innerHTML = `
+            <div class="dropdown-card">
+                <a href="auth.html" class="dropdown-item">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Sign In</span>
+                </a>
+                <button id="cleanupBtn" class="dropdown-item">
+                    <i class="fas fa-broom"></i>
+                    <span>Cleanup Duplicates</span>
+                </button>
+            </div>
+        `;
+        
+        // Re-attach cleanup event listener
+        const cleanupBtn = document.getElementById('cleanupBtn');
+        if (cleanupBtn) {
+            cleanupBtn.addEventListener('click', async (e) => {
+                console.log('🔧 Manual cleanup button clicked');
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Close the dropdown first
+                userMenuDropdown.style.display = 'none';
+                
+                const removed = aggressiveCleanupDuplicates();
+                if (removed) {
+                    updatePortfolioDisplay();
+                    updatePortfolioOverview();
+                    alert('✅ Duplicate cleanup completed! Removed duplicate assets.');
+                } else {
+                    alert('ℹ️ No duplicates found to clean up.');
+                }
+            });
         }
     }
 }
@@ -362,9 +468,6 @@ async function initializeApp() {
     if (typeof initializeAuthListener === 'function') {
         initializeAuthListener();
     }
-    
-    // Initialize authentication UI and event listeners
-    initializeAuth();
     
     setupEventListeners();
     

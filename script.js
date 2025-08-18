@@ -335,6 +335,9 @@ async function initializeApp() {
         initializeAuthListener();
     }
     
+    // Initialize authentication UI and event listeners
+    initializeAuth();
+    
     setupEventListeners();
     
     // Load portfolio from localStorage immediately as fallback

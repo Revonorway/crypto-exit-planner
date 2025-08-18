@@ -1047,6 +1047,20 @@ function updateLadderFieldOnly(index, field, value) {
         
         currentAsset.exitStrategy[index][field] = numValue;
         console.log(`📝 Updated ladder ${index}.${field}: ${oldValue} → ${numValue}`);
+        
+        // Sort exit levels by price when price is updated (but not when percentage is updated to avoid disruption)
+        if (field === 'price' && numValue > 0) {
+            const reordered = sortExitLevelsByPrice();
+            if (reordered) {
+                console.log('🔄 Exit levels reordered after price update');
+                // Re-render to show the new order
+                setTimeout(() => {
+                    renderExitLadders();
+                    updateProjections();
+                    updateProgress();
+                }, 100); // Small delay to ensure smooth UX
+            }
+        }
     } else {
         currentAsset.exitStrategy[index][field] = value;
         console.log(`📝 Updated ladder ${index}.${field}: ${oldValue} → ${value}`);
@@ -1236,6 +1250,49 @@ function updateSalesSummary() {
     document.getElementById('totalTaxDueOverview').textContent = formatCurrency(totalTaxDue);
     document.getElementById('totalTitheOverview').textContent = formatCurrency(totalTithe);
     document.getElementById('totalNetAmountOverview').textContent = formatCurrency(totalNetAmount);
+}
+
+// Helper function to sort exit levels by price (lowest to highest)
+function sortExitLevelsByPrice() {
+    if (!currentAsset || !currentAsset.exitStrategy || currentAsset.exitStrategy.length <= 1) {
+        return;
+    }
+    
+    // Create a copy of the array to sort
+    const sortedLevels = [...currentAsset.exitStrategy];
+    
+    // Sort by price (lowest to highest), with 0 prices at the end
+    sortedLevels.sort((a, b) => {
+        const priceA = parseFloat(a.price) || 0;
+        const priceB = parseFloat(b.price) || 0;
+        
+        // If both prices are 0, maintain original order
+        if (priceA === 0 && priceB === 0) return 0;
+        
+        // If one price is 0, put it at the end
+        if (priceA === 0) return 1;
+        if (priceB === 0) return -1;
+        
+        // Sort by price (ascending)
+        return priceA - priceB;
+    });
+    
+    // Check if order actually changed
+    const orderChanged = sortedLevels.some((level, index) => 
+        level !== currentAsset.exitStrategy[index]
+    );
+    
+    if (orderChanged) {
+        console.log('🔄 Reordering exit levels by price...');
+        currentAsset.exitStrategy = sortedLevels;
+        
+        // Show a brief notification that levels were reordered
+        showPriceAlertNotification('📋 Exit levels reordered by price (lowest to highest)');
+        
+        return true; // Indicate that reordering occurred
+    }
+    
+    return false; // No reordering needed
 }
 
 function addExitLadder() {

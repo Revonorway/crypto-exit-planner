@@ -233,12 +233,15 @@ async function handleLogout() {
             const { error } = await window.supabase.auth.signOut();
             if (error) {
                 console.error('🔧 Supabase signOut error:', error);
-                throw error;
+                // Don't throw error, continue with local logout
+            } else {
+                console.log('🔧 Supabase signOut successful');
             }
-            console.log('🔧 Supabase signOut successful');
         }
         
-        // Clear offline mode flag
+        // Clear ALL authentication data
+        console.log('🔧 Clearing all authentication data...');
+        localStorage.removeItem('cep_current_user');
         localStorage.removeItem('cep_offline_mode');
         
         // Clear user state
@@ -246,13 +249,18 @@ async function handleLogout() {
         isAuthenticated = false;
         isOfflineMode = false;
         
+        // Clear window globals
+        window.currentUser = null;
+        window.isAuthenticated = false;
+        
         // Redirect to auth page
         console.log('🔧 Redirecting to auth.html...');
         window.location.href = 'auth.html';
         
     } catch (error) {
         console.error('🔧 Logout failed:', error);
-        // Force logout on error
+        // Force logout on error - clear everything
+        localStorage.removeItem('cep_current_user');
         localStorage.removeItem('cep_offline_mode');
         console.log('🔧 Force redirecting to auth.html...');
         window.location.href = 'auth.html';
@@ -455,11 +463,7 @@ function initializeAuth() {
     const savedUser = localStorage.getItem('cep_current_user');
     currentUser = savedUser ? JSON.parse(savedUser) : null;
     const overlay = document.getElementById('authOverlay');
-    const loginHeaderBtn = document.getElementById('loginHeaderBtn');
-    if (loginHeaderBtn) {
-        loginHeaderBtn.style.display = currentUser ? 'none' : 'inline-flex';
-        loginHeaderBtn.addEventListener('click', ()=> { if (overlay) overlay.style.display='flex'; });
-    }
+
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async (e) => {

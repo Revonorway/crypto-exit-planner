@@ -6,12 +6,25 @@ document.addEventListener('DOMContentLoaded', () => {
 })
 
 function initializeAuth() {
-    // Check if user is already signed in
+    // Check if user is already signed in AND has valid session
     window.supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-            // User is already signed in, redirect to main app
+        console.log('Auth check - session:', session ? 'exists' : 'none');
+        
+        // Only redirect if we have a valid, current session
+        if (session && session.user && (!session.expires_at || new Date(session.expires_at * 1000) > new Date())) {
+            console.log('Valid session found, redirecting to main app');
             window.location.href = 'index.html'
+        } else {
+            console.log('No valid session, staying on auth page');
+            // Clear any stale localStorage data that might be confusing the app
+            localStorage.removeItem('cep_current_user');
+            localStorage.removeItem('cep_offline_mode');
         }
+    }).catch(error => {
+        console.error('Auth session check failed:', error);
+        // Clear any stale data on error
+        localStorage.removeItem('cep_current_user');
+        localStorage.removeItem('cep_offline_mode');
     })
 
     // Set up form event listeners

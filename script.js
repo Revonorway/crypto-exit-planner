@@ -51,6 +51,21 @@ async function checkAuthenticationStatus() {
     if (isOfflineMode) {
         console.log('Running in offline mode');
         isAuthenticated = false;
+        currentUser = null;
+        updateUserInterface();
+        return;
+    }
+    
+    // Check if user explicitly logged out (no localStorage auth data)
+    const localUser = localStorage.getItem('cep_current_user');
+    if (!localUser) {
+        console.log('No local auth data - user logged out or never signed in');
+        isAuthenticated = false;
+        currentUser = null;
+        // Clear any lingering Supabase session
+        if (typeof window.supabase !== 'undefined') {
+            await window.supabase.auth.signOut();
+        }
         updateUserInterface();
         return;
     }
@@ -60,6 +75,7 @@ async function checkAuthenticationStatus() {
         console.log('Supabase not available, running in offline mode');
         isOfflineMode = true;
         isAuthenticated = false;
+        currentUser = null;
         updateUserInterface();
         return;
     }
@@ -67,22 +83,26 @@ async function checkAuthenticationStatus() {
     try {
         const { data: { session } } = await window.supabase.auth.getSession();
         
-        if (session) {
+        // Only accept session if it's valid AND we have local auth data
+        if (session && session.user && localUser) {
             currentUser = session.user;
             isAuthenticated = true;
             console.log('User authenticated:', currentUser.email);
         } else {
-            // No session - show auth page OR continue offline
-            console.log('No session found - user can choose auth or offline mode');
+            // No valid session or no local auth data
+            console.log('No valid session found or local auth data missing');
             currentUser = null;
             isAuthenticated = false;
-            // Don't auto-redirect - let user choose
+            // Clear any partial auth state
+            localStorage.removeItem('cep_current_user');
+            await window.supabase.auth.signOut();
         }
     } catch (error) {
         console.error('Auth check failed:', error);
         // Fall back to offline mode on error
         isOfflineMode = true;
         isAuthenticated = false;
+        currentUser = null;
     }
     
     updateUserInterface();

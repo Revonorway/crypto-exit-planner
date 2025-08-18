@@ -19,7 +19,12 @@ function initializeAuthListener() {
     supabaseClient.auth.onAuthStateChange((event, session) => {
         console.log('Auth state change:', event, session ? 'has session' : 'no session');
         
-        if (session) {
+        // Check if user explicitly logged out by checking localStorage
+        const localUser = localStorage.getItem('cep_current_user');
+        const isOfflineMode = localStorage.getItem('cep_offline_mode') === 'true';
+        
+        if (session && localUser && !isOfflineMode) {
+            // Only authenticate if we have both a session AND local auth data
             window.currentUser = session.user
             window.isAuthenticated = true
             console.log('User signed in:', window.currentUser.email)
@@ -36,9 +41,10 @@ function initializeAuthListener() {
                 }
             }
         } else {
+            // No session OR user logged out OR in offline mode
             window.currentUser = null
             window.isAuthenticated = false
-            console.log('User signed out')
+            console.log('User signed out or session invalid')
             // Don't reload portfolio if we already have data
             const currentPortfolio = window.portfolio || JSON.parse(localStorage.getItem('portfolio') || '[]');
             if (currentPortfolio.length === 0) {

@@ -365,19 +365,26 @@ async function handleLogout() {
             }
         }
         
-        // Clear ALL authentication data
-        console.log('🔧 Clearing all authentication data...');
+        // Clear ALL authentication data and portfolio data
+        console.log('🔧 Clearing all authentication data and portfolio data...');
         localStorage.removeItem('cep_current_user');
         localStorage.removeItem('cep_offline_mode');
+        localStorage.removeItem('portfolio');
         
         // Clear user state
         currentUser = null;
         isAuthenticated = false;
         isOfflineMode = false;
         
-        // Clear window globals
+        // Clear window globals and portfolio data
         window.currentUser = null;
         window.isAuthenticated = false;
+        
+        // Clear portfolio data from memory
+        window.portfolio = [];
+        if (typeof portfolio !== 'undefined') {
+            portfolio.splice(0, portfolio.length);
+        }
         
         // Redirect to auth page
         console.log('🔧 Redirecting to auth.html...');
@@ -385,9 +392,10 @@ async function handleLogout() {
         
     } catch (error) {
         console.error('🔧 Logout failed:', error);
-        // Force logout on error - clear everything
+        // Force logout on error - clear everything including portfolio
         localStorage.removeItem('cep_current_user');
         localStorage.removeItem('cep_offline_mode');
+        localStorage.removeItem('portfolio');
         console.log('🔧 Force redirecting to auth.html...');
         window.location.href = 'auth.html';
     }

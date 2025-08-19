@@ -5104,6 +5104,14 @@ input:checked + .slider:before {
     border-bottom: 1px solid var(--border-color);
 }
 
+.amount-breakdown {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+    font-weight: 400;
+}
+
 .strategy-overview {
     display: flex;
     flex-direction: column;

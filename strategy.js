@@ -328,9 +328,6 @@ function setupEventListeners() {
     // Wallet management events
     const addWalletBtn = document.getElementById('addWalletBtn');
     if (addWalletBtn) addWalletBtn.addEventListener('click', addWalletRecord);
-    
-    const syncWalletsBtn = document.getElementById('syncWalletsBtn');
-    if (syncWalletsBtn) syncWalletsBtn.addEventListener('click', syncWalletAmounts);
 
     // Keyboard: save with Cmd/Ctrl+S
     document.addEventListener('keydown', (e) => {
@@ -3332,7 +3329,8 @@ function addWalletRecord() {
         id: Date.now().toString(),
         name: '',
         type: 'Hardware Wallet', // Default type
-        amount: 0,
+        amount: 0, // Initial amount (user-editable)
+        transactionBalance: 0, // Running transaction total
         percentage: 0
     };
     
@@ -3372,9 +3370,10 @@ function renderWallets() {
     const currentPrice = currentPrices[currentAsset.id] || 0;
     
     tbody.innerHTML = wallets.map((wallet, index) => {
-        const amount = parseFloat(wallet.amount) || 0;
-        const percentage = totalHoldings > 0 ? (amount / totalHoldings * 100) : 0;
-        const value = amount * currentPrice;
+        const currentAmount = getWalletCurrentAmount(wallet); // Initial + transactions
+        const initialAmount = parseFloat(wallet.amount) || 0; // User-set initial amount  
+        const percentage = totalHoldings > 0 ? (currentAmount / totalHoldings * 100) : 0;
+        const value = currentAmount * currentPrice;
         const isNewRecord = (!wallet.name || wallet.name.trim() === '') || wallet._isEditing;
         
         return `
@@ -3412,13 +3411,14 @@ function renderWallets() {
                         `<input type="text" 
                            class="table-input wallet-amount-input" 
                            placeholder="0"
-                           value="${formatNumberInput(wallet.amount)}" 
+                           value="${formatNumberInput(initialAmount)}" 
                            inputmode="decimal"
                            data-field="amount"
                            data-wallet-index="${index}"
                            oninput="validateWalletAmountInput(this, ${index})">
                         <span class="input-suffix">${currentAsset.symbol}</span>` :
-                        `<span class="display-value">${formatAssetAmount(amount)} ${currentAsset.symbol}</span>`
+                        `<span class="display-value">${formatAssetAmount(currentAmount)} ${currentAsset.symbol}
+                         ${currentAmount !== initialAmount ? `<small class="amount-breakdown">(${formatAssetAmount(initialAmount)} initial + ${formatAssetAmount(currentAmount - initialAmount)} transactions)</small>` : ''}</span>`
                     }
                 </td>
                 <td class="wallet-percentage-cell" data-label="% of Total">
@@ -3460,7 +3460,7 @@ function updateWalletSummary() {
     
     let totalDistributed = 0;
     wallets.forEach(wallet => {
-        totalDistributed += parseFloat(wallet.amount) || 0;
+        totalDistributed += getWalletCurrentAmount(wallet); // Use current amount (initial + transactions)
     });
     
     // If wallet amounts exceed total holdings, update total holdings
@@ -3665,7 +3665,7 @@ function getWalletDisplayName(walletId) {
     return wallet ? `${wallet.name} (${wallet.type})` : null;
 }
 
-// Update a specific wallet's amount
+// Update a specific wallet's transaction balance (not the initial amount)
 function updateWalletAmount(walletId, amountChange) {
     if (!walletId || amountChange === 0) return;
     
@@ -3673,11 +3673,15 @@ function updateWalletAmount(walletId, amountChange) {
     const wallet = wallets.find(w => w.id === walletId);
     
     if (wallet) {
-        const oldAmount = parseFloat(wallet.amount) || 0;
-        const newAmount = Math.max(0, oldAmount + amountChange);
-        wallet.amount = newAmount;
+        // Initialize transaction balance if it doesn't exist
+        if (typeof wallet.transactionBalance === 'undefined') {
+            wallet.transactionBalance = 0;
+        }
         
-        console.log(`🏦 Updated wallet "${wallet.name}" amount: ${oldAmount} → ${newAmount} (${amountChange >= 0 ? '+' : ''}${amountChange})`);
+        const oldTransactionBalance = parseFloat(wallet.transactionBalance) || 0;
+        wallet.transactionBalance = oldTransactionBalance + amountChange;
+        
+        console.log(`🏦 Updated wallet "${wallet.name}" transaction balance: ${oldTransactionBalance} → ${wallet.transactionBalance} (${amountChange >= 0 ? '+' : ''}${amountChange})`);
         
         saveWallets(wallets);
     } else {
@@ -3685,36 +3689,11 @@ function updateWalletAmount(walletId, amountChange) {
     }
 }
 
-// Sync wallet amounts based on existing purchases and sales
-function syncWalletAmounts() {
-    if (!currentAsset) return;
-    
-    console.log('🔄 Syncing wallet amounts with purchases and sales...');
-    
-    // Reset all wallet amounts to 0 first
-    const wallets = getWallets();
-    wallets.forEach(wallet => {
-        wallet.amount = 0;
-    });
-    
-    // Add amounts from purchases
-    const purchases = getPurchases();
-    purchases.forEach(purchase => {
-        if (purchase.walletId && purchase.amount > 0) {
-            updateWalletAmount(purchase.walletId, purchase.amount);
-        }
-    });
-    
-    // Subtract amounts from sales
-    const sales = getSales();
-    sales.forEach(sale => {
-        if (sale.walletId && sale.amount > 0) {
-            updateWalletAmount(sale.walletId, -sale.amount);
-        }
-    });
-    
-    renderWallets();
-    console.log('✅ Wallet amounts synced');
+// Calculate the current wallet amount (initial + transactions)
+function getWalletCurrentAmount(wallet) {
+    const initialAmount = parseFloat(wallet.amount) || 0; // User-set initial amount
+    const transactionBalance = parseFloat(wallet.transactionBalance) || 0; // Running transaction total
+    return Math.max(0, initialAmount + transactionBalance);
 }
 
 // Toggle Net Take-Home view between projected and realized (strategy page)

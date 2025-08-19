@@ -5012,6 +5012,33 @@ input:checked + .slider:before {
     color: var(--text-secondary);
 }
 
+.breakdown-value.positive {
+    color: var(--success-color);
+}
+
+.breakdown-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.breakdown-section-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.25rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.breakdown-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 0.5rem 0;
+}
+
 .strategy-overview {
     display: flex;
     flex-direction: column;

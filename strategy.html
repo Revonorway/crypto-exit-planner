@@ -177,18 +177,37 @@
                             <span class="section-icon">💰</span>
                             <span class="section-title">Net Take-Home</span>
                         </div>
-                        <div class="trending-list">
-                            <div class="trending-item">
-                                <span class="trending-label">Net Amount</span>
-                                <span class="trending-value positive" id="totalNetAmountOverview">0</span>
+                        <div class="financial-breakdown">
+                            <div class="breakdown-section">
+                                <div class="breakdown-section-title">Projected (Full Exit)</div>
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">Net Amount</span>
+                                    <span class="breakdown-value tabular positive" id="projectedNetAmountOverview">0</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">Tax Due (22%)</span>
+                                    <span class="breakdown-value tabular negative" id="projectedTaxDueOverview">0</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">Tithe (10%)</span>
+                                    <span class="breakdown-value tabular muted" id="projectedTitheOverview">0</span>
+                                </div>
                             </div>
-                            <div class="trending-item">
-                                <span class="trending-label">Tax Due (22%)</span>
-                                <span class="trending-value negative" id="totalTaxDueOverview">0</span>
-                            </div>
-                            <div class="trending-item">
-                                <span class="trending-label">Tithe (10%)</span>
-                                <span class="trending-value muted" id="totalTitheOverview">0</span>
+                            <div class="breakdown-divider"></div>
+                            <div class="breakdown-section">
+                                <div class="breakdown-section-title">Already Realized</div>
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">Net Amount</span>
+                                    <span class="breakdown-value tabular positive" id="totalNetAmountOverview">0</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">Tax Due (22%)</span>
+                                    <span class="breakdown-value tabular negative" id="totalTaxDueOverview">0</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">Tithe (10%)</span>
+                                    <span class="breakdown-value tabular muted" id="totalTitheOverview">0</span>
+                                </div>
                             </div>
                         </div>
                     </div>

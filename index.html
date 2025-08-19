@@ -172,17 +172,36 @@
                             <span class="section-title">Net Take-Home</span>
                         </div>
                         <div class="financial-breakdown">
-                            <div class="breakdown-item">
-                                <span class="breakdown-label">Net Amount</span>
-                                <span class="breakdown-value tabular" id="marketNetAmount">0</span>
+                            <div class="breakdown-section">
+                                <div class="breakdown-section-title">Projected (Full Exit)</div>
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">Net Amount</span>
+                                    <span class="breakdown-value tabular positive" id="marketProjectedNetAmount">0</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">Tax Due (22%)</span>
+                                    <span class="breakdown-value tabular negative" id="marketProjectedTaxDue">0</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">Tithe (10%)</span>
+                                    <span class="breakdown-value tabular muted" id="marketProjectedTithe">0</span>
+                                </div>
                             </div>
-                            <div class="breakdown-item">
-                                <span class="breakdown-label">Tax Due (22%)</span>
-                                <span class="breakdown-value tabular negative" id="marketTaxDue">0</span>
-                            </div>
-                            <div class="breakdown-item">
-                                <span class="breakdown-label">Tithe (10%)</span>
-                                <span class="breakdown-value tabular muted" id="marketTithe">0</span>
+                            <div class="breakdown-divider"></div>
+                            <div class="breakdown-section">
+                                <div class="breakdown-section-title">Already Realized</div>
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">Net Amount</span>
+                                    <span class="breakdown-value tabular" id="marketNetAmount">0</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">Tax Due (22%)</span>
+                                    <span class="breakdown-value tabular negative" id="marketTaxDue">0</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">Tithe (10%)</span>
+                                    <span class="breakdown-value tabular muted" id="marketTithe">0</span>
+                                </div>
                             </div>
                         </div>
                     </div>

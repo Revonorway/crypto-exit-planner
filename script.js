@@ -2001,11 +2001,13 @@ function calculateExitData() {
     let activeLadders = 0;
     let nextTargetPrice = 0;
     let closestDistance = Infinity;
+    let totalCostBasis = 0; // Track cost basis for proper gain calculations
     
     portfolio.forEach(asset => {
         const currentPrice = currentPrices[asset.id] || 0;
+        const assetAvgPrice = parseFloat(asset.avgPrice) || 0;
         
-        // Calculate planned exit value
+        // Calculate planned exit value and cost basis
         if (asset.exitStrategy && asset.exitStrategy.length > 0) {
             let remaining = parseFloat(asset.amount) || 0;
             
@@ -2017,6 +2019,7 @@ function calculateExitData() {
                     activeLadders++;
                     const sellAmount = remaining * (percentage / 100);
                     totalExitValue += sellAmount * price;
+                    totalCostBasis += sellAmount * assetAvgPrice; // Add cost basis for this portion
                     remaining -= sellAmount;
                     
                     // Find closest target
@@ -2046,19 +2049,47 @@ function calculateExitData() {
     
     const exitProgress = totalExitValue > 0 ? (totalRealizedValue / totalExitValue) * 100 : 0;
     
+    // Calculate projected taxes and tithe for the full exit plan
+    const projectedGains = Math.max(0, totalExitValue - totalCostBasis);
+    const projectedTaxDue = projectedGains * 0.22; // 22% tax on gains only
+    const projectedTithe = totalExitValue * 0.10;   // 10% tithe on total sales value
+    const projectedNetAmount = totalExitValue - totalCostBasis - projectedTaxDue - projectedTithe;
+    
+    // Calculate realized taxes and tithe (current implementation)
+    const realizedTaxDue = totalRealizedValue * 0.22; // 22% tax (simplified)
+    const realizedTithe = totalRealizedValue * 0.10;   // 10% tithe
+    const realizedNetAmount = totalRealizedValue * 0.68; // After tax and tithe
+    
     return {
         totalExitValue,
         totalRealizedValue,
         exitProgress,
         activeLadders,
         nextTargetPrice,
-        taxDue: totalRealizedValue * 0.22, // 22% tax
-        tithe: totalRealizedValue * 0.10,   // 10% tithe
-        netAmount: totalRealizedValue * 0.68 // After tax and tithe
+        // Existing realized values (for backward compatibility)
+        taxDue: realizedTaxDue,
+        tithe: realizedTithe,
+        netAmount: realizedNetAmount,
+        // New projected values
+        projectedTaxDue,
+        projectedTithe,
+        projectedNetAmount,
+        projectedGains,
+        totalCostBasis
     };
 }
 
 function updateFinancialBreakdown(exitData) {
+    // Update projected values (full exit plan)
+    const marketProjectedNetAmount = document.getElementById('marketProjectedNetAmount');
+    const marketProjectedTaxDue = document.getElementById('marketProjectedTaxDue');
+    const marketProjectedTithe = document.getElementById('marketProjectedTithe');
+    
+    if (marketProjectedNetAmount) marketProjectedNetAmount.textContent = formatCurrency(exitData.projectedNetAmount || 0);
+    if (marketProjectedTaxDue) marketProjectedTaxDue.textContent = formatCurrency(exitData.projectedTaxDue || 0);
+    if (marketProjectedTithe) marketProjectedTithe.textContent = formatCurrency(exitData.projectedTithe || 0);
+    
+    // Update realized values (existing functionality)
     const marketNetAmount = document.getElementById('marketNetAmount');
     const marketTaxDue = document.getElementById('marketTaxDue');
     const marketTithe = document.getElementById('marketTithe');
@@ -4057,7 +4088,10 @@ function initializeCurrencyDisplays() {
         'marketNextTarget',
         'marketNetAmount',
         'marketTaxDue',
-        'marketTithe'
+        'marketTithe',
+        'marketProjectedNetAmount',
+        'marketProjectedTaxDue',
+        'marketProjectedTithe'
     ];
     
     const zeroValue = formatCurrency(0);

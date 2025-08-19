@@ -1,137 +1,183 @@
-# Crypto Portfolio Exit Planner
+# Supabase CLI
 
-A modern, mobile-first web application for planning and tracking your exit strategy from cryptocurrency markets. Built with vanilla HTML, CSS, and JavaScript.
+[![Coverage Status](https://coveralls.io/repos/github/supabase/cli/badge.svg?branch=main)](https://coveralls.io/github/supabase/cli?branch=main) [![Bitbucket Pipelines](https://img.shields.io/bitbucket/pipelines/supabase-cli/setup-cli/master?style=flat-square&label=Bitbucket%20Canary)](https://bitbucket.org/supabase-cli/setup-cli/pipelines) [![Gitlab Pipeline Status](https://img.shields.io/gitlab/pipeline-status/sweatybridge%2Fsetup-cli?label=Gitlab%20Canary)
+](https://gitlab.com/sweatybridge/setup-cli/-/pipelines)
 
-## Features
+[Supabase](https://supabase.io) is an open source Firebase alternative. We're building the features of Firebase using enterprise-grade open source tools.
 
-### 🎯 Portfolio Overview Dashboard
-- **Total Portfolio Value**: Real-time calculation in USD and NOK
-- **Total Invested**: Track your initial investment
-- **Total P&L**: Profit and loss tracking with color coding
-- **Exit Progress**: Overall progress of your exit strategy
+This repository contains all the functionality for Supabase CLI.
 
-### 🔍 Asset Management
-- **Intuitive Search**: Search and add popular cryptocurrencies
-- **Portfolio Tracking**: Monitor current holdings and values
-- **Automatic Updates**: Real-time price updates (simulated)
-- **Currency Toggle**: Switch between USD and NOK display
+- [x] Running Supabase locally
+- [x] Managing database migrations
+- [x] Creating and deploying Supabase Functions
+- [x] Generating types directly from your database schema
+- [x] Making authenticated HTTP requests to [Management API](https://supabase.com/docs/reference/api/introduction)
 
-### 📊 Exit Strategy Planning
-- **Ladder Exit Strategy**: Create multiple exit levels per asset
-- **Price Targets**: Set specific price points for selling
-- **Percentage Allocation**: Define what percentage to sell at each level
-- **Strategy Summary**: View total exit percentage and average exit price
+## Getting started
 
-### 🎨 Modern Design
-- **Dark Theme**: Easy on the eyes with a professional look
-- **Mobile-First**: Responsive design that works on all devices
-- **Smooth Animations**: Modern UI with hover effects and transitions
-- **Intuitive Navigation**: Clean, organized interface
+### Install the CLI
 
-## How to Use
+Available via [NPM](https://www.npmjs.com) as dev dependency. To install:
 
-### 1. Getting Started
-1. Open `index.html` in your web browser
-2. The app will load with an empty portfolio
-3. Start by adding your first cryptocurrency asset
+```bash
+npm i supabase --save-dev
+```
 
-### 2. Adding Assets
-1. **Search**: Type the name or symbol of a cryptocurrency (e.g., "Bitcoin" or "BTC")
-2. **Select**: Click on the desired asset from the search results
-3. **Enter Details**: 
-   - Amount owned (e.g., 0.5 BTC)
-   - Average purchase price in USD
-4. **Add**: Click "Add to Portfolio"
+To install the beta release channel:
 
-### 3. Creating Exit Strategies
-1. **Click on Asset**: Click any asset card in your portfolio
-2. **Add Exit Levels**: Click "Add Exit Level" to create new exit points
-3. **Set Parameters**:
-   - **Price**: Target price in USD for this exit level
-   - **Percentage**: What percentage of remaining holdings to sell
-4. **Monitor Progress**: View your exit strategy summary
+```bash
+npm i supabase@beta --save-dev
+```
 
-### 4. Portfolio Management
-- **Update Holdings**: Add more of the same asset to update your average price
-- **Track Progress**: Monitor your exit strategy progress in real-time
-- **Currency Switch**: Toggle between USD and NOK display
+When installing with yarn 4, you need to disable experimental fetch with the following nodejs config.
 
-## Technical Details
+```
+NODE_OPTIONS=--no-experimental-fetch yarn add supabase
+```
 
-### Built With
-- **HTML5**: Semantic markup for accessibility
-- **CSS3**: Modern styling with CSS Grid and Flexbox
-- **Vanilla JavaScript**: No frameworks or dependencies
-- **Local Storage**: Data persistence in your browser
+> **Note**
+For Bun versions below v1.0.17, you must add `supabase` as a [trusted dependency](https://bun.sh/guides/install/trusted) before running `bun add -D supabase`.
 
-### Browser Support
-- Chrome (recommended)
-- Firefox
-- Safari
-- Edge
+<details>
+  <summary><b>macOS</b></summary>
 
-### Data Storage
-- All data is stored locally in your browser's localStorage
-- No external servers or data transmission
-- Your portfolio data stays private
+  Available via [Homebrew](https://brew.sh). To install:
 
-## Example Exit Strategy
+  ```sh
+  brew install supabase/tap/supabase
+  ```
 
-Here's how you might set up a ladder exit strategy for Bitcoin:
+  To install the beta release channel:
+  
+  ```sh
+  brew install supabase/tap/supabase-beta
+  brew link --overwrite supabase-beta
+  ```
+  
+  To upgrade:
 
-1. **Exit Level 1**: Sell 20% at $50,000
-2. **Exit Level 2**: Sell 30% at $60,000  
-3. **Exit Level 3**: Sell 25% at $75,000
-4. **Exit Level 4**: Sell 15% at $100,000
-5. **Remaining**: Keep 10% for long-term holding
+  ```sh
+  brew upgrade supabase
+  ```
+</details>
 
-This creates a systematic approach to taking profits while maintaining some exposure to potential further gains.
+<details>
+  <summary><b>Windows</b></summary>
 
-## Tips for Effective Exit Planning
+  Available via [Scoop](https://scoop.sh). To install:
 
-### 1. Diversify Exit Points
-- Don't put all your eggs in one basket
-- Spread exits across multiple price levels
-- Consider both profit-taking and loss-cutting levels
+  ```powershell
+  scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
+  scoop install supabase
+  ```
 
-### 2. Consider Market Conditions
-- Adjust strategies based on market cycles
-- Be flexible with your exit points
-- Don't be afraid to modify plans as conditions change
+  To upgrade:
 
-### 3. Track Your Progress
-- Regularly review your exit strategy
-- Monitor how close you are to your targets
-- Celebrate when you hit your exit levels
+  ```powershell
+  scoop update supabase
+  ```
+</details>
 
-### 4. Stay Disciplined
-- Stick to your plan once set
-- Don't let emotions drive decisions
-- Remember your original investment thesis
+<details>
+  <summary><b>Linux</b></summary>
 
-## Future Enhancements
+  Available via [Homebrew](https://brew.sh) and Linux packages.
 
-Potential features for future versions:
-- Real-time price feeds from CoinGecko API
-- Historical performance tracking
-- Tax loss harvesting suggestions
-- Portfolio rebalancing tools
-- Export functionality for tax reporting
-- Multiple portfolio support
-- Advanced charting and analysis
+  #### via Homebrew
 
-## Privacy & Security
+  To install:
 
-- **No External Data**: All data stays on your device
-- **No Registration**: No accounts or personal information required
-- **Local Storage**: Data persists between browser sessions
-- **Offline Capable**: Works without internet connection
+  ```sh
+  brew install supabase/tap/supabase
+  ```
 
-## Support
+  To upgrade:
 
-This is a personal project built for educational and practical purposes. For issues or suggestions, please refer to the code comments or create an issue in the repository.
+  ```sh
+  brew upgrade supabase
+  ```
 
----
+  #### via Linux packages
 
-**Disclaimer**: This tool is for educational and planning purposes only. It does not constitute financial advice. Always do your own research and consider consulting with a financial advisor before making investment decisions.
+  Linux packages are provided in [Releases](https://github.com/supabase/cli/releases). To install, download the `.apk`/`.deb`/`.rpm`/`.pkg.tar.zst` file depending on your package manager and run the respective commands.
 
+  ```sh
+  sudo apk add --allow-untrusted <...>.apk
+  ```
+
+  ```sh
+  sudo dpkg -i <...>.deb
+  ```
+
+  ```sh
+  sudo rpm -i <...>.rpm
+  ```
+
+  ```sh
+  sudo pacman -U <...>.pkg.tar.zst
+  ```
+</details>
+
+<details>
+  <summary><b>Other Platforms</b></summary>
+
+  You can also install the CLI via [go modules](https://go.dev/ref/mod#go-install) without the help of package managers.
+
+  ```sh
+  go install github.com/supabase/cli@latest
+  ```
+
+  Add a symlink to the binary in `$PATH` for easier access:
+
+  ```sh
+  ln -s "$(go env GOPATH)/bin/cli" /usr/bin/supabase
+  ```
+
+  This works on other non-standard Linux distros.
+</details>
+
+<details>
+  <summary><b>Community Maintained Packages</b></summary>
+
+  Available via [pkgx](https://pkgx.sh/). Package script [here](https://github.com/pkgxdev/pantry/blob/main/projects/supabase.com/cli/package.yml).
+  To install in your working directory:
+
+  ```bash
+  pkgx install supabase
+  ```
+
+  Available via [Nixpkgs](https://nixos.org/). Package script [here](https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/tools/supabase-cli/default.nix).
+</details>
+
+### Run the CLI
+
+```bash
+supabase bootstrap
+```
+
+Or using npx:
+
+```bash
+npx supabase bootstrap
+```
+
+The bootstrap command will guide you through the process of setting up a Supabase project using one of the [starter](https://github.com/supabase-community/supabase-samples/blob/main/samples.json) templates.
+
+## Docs
+
+Command & config reference can be found [here](https://supabase.com/docs/reference/cli/about).
+
+## Breaking changes
+
+We follow semantic versioning for changes that directly impact CLI commands, flags, and configurations.
+
+However, due to dependencies on other service images, we cannot guarantee that schema migrations, seed.sql, and generated types will always work for the same CLI major version. If you need such guarantees, we encourage you to pin a specific version of CLI in package.json.
+
+## Developing
+
+To run from source:
+
+```sh
+# Go >= 1.22
+go run . help
+```

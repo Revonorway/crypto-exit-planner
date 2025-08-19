@@ -1172,6 +1172,23 @@ function updateProjections() {
     // Update main dashboard total realized if present
     const realizedEl = document.getElementById('totalRealizedMain');
     if (realizedEl) realizedEl.textContent = formatCurrency(totalRealized);
+    
+    // Calculate projected values for the full exit strategy
+    const avgPrice = currentAsset.avgPrice || 0;
+    const totalCostBasis = totalAmountSold * avgPrice;
+    const projectedGains = Math.max(0, totalExitValue - totalCostBasis);
+    const projectedTaxDue = projectedGains * 0.22; // 22% tax on gains only
+    const projectedTithe = totalExitValue * 0.10;   // 10% tithe on total sales value
+    const projectedNetAmount = totalExitValue - totalCostBasis - projectedTaxDue - projectedTithe;
+    
+    // Update projected values in the overview
+    const projectedNetEl = document.getElementById('projectedNetAmountOverview');
+    const projectedTaxEl = document.getElementById('projectedTaxDueOverview');
+    const projectedTitheEl = document.getElementById('projectedTitheOverview');
+    
+    if (projectedNetEl) projectedNetEl.textContent = formatCurrency(projectedNetAmount);
+    if (projectedTaxEl) projectedTaxEl.textContent = formatCurrency(projectedTaxDue);
+    if (projectedTitheEl) projectedTitheEl.textContent = formatCurrency(projectedTithe);
 }
 
 function updateProgress() {
@@ -2939,6 +2956,9 @@ function initializeStrategyCurrencyDisplays() {
         'totalTaxDueOverview',
         'totalTitheOverview',
         'totalNetAmountOverview',
+        'projectedNetAmountOverview',
+        'projectedTaxDueOverview',
+        'projectedTitheOverview',
         'totalPurchasesValue',
         'avgPurchasePrice'
     ];

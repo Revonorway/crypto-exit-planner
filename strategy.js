@@ -328,6 +328,9 @@ function setupEventListeners() {
     // Wallet management events
     const addWalletBtn = document.getElementById('addWalletBtn');
     if (addWalletBtn) addWalletBtn.addEventListener('click', addWalletRecord);
+    
+    const syncWalletsBtn = document.getElementById('syncWalletsBtn');
+    if (syncWalletsBtn) syncWalletsBtn.addEventListener('click', syncWalletAmounts);
 
     // Keyboard: save with Cmd/Ctrl+S
     document.addEventListener('keydown', (e) => {
@@ -1418,6 +1421,11 @@ function deleteSaleRecord(index) {
     const rec = sales[index];
     if (!rec) return;
     
+    // If sale had a wallet and amount, add the amount back to the wallet
+    if (rec.walletId && rec.amount > 0) {
+        updateWalletAmount(rec.walletId, rec.amount);
+    }
+    
     sales.splice(index, 1);
     saveSales(sales);
     
@@ -1426,6 +1434,7 @@ function deleteSaleRecord(index) {
     
     updateAssetDisplay();
     renderSales();
+    renderWallets(); // Update wallet display
     updateProjections();
     updateProgress();
     updateSalesSummary();
@@ -1652,6 +1661,7 @@ function updateSaleField(index, field, value) {
     }
     
     const oldValue = currentAsset.sales[index][field];
+    const sale = currentAsset.sales[index];
     
     if (field === 'amount' || field === 'price') {
         // Use parseFloat with fallback parsing
@@ -1668,9 +1678,30 @@ function updateSaleField(index, field, value) {
             console.log('❌ Invalid numeric value:', { value, numValue });
             return;
         }
+        
+        // If amount changed and sale has a wallet, update wallet amount
+        if (field === 'amount' && sale.walletId && oldValue !== numValue) {
+            const amountDiff = (parseFloat(oldValue) || 0) - numValue; // Positive means more sold, negative means less sold
+            updateWalletAmount(sale.walletId, amountDiff);
+        }
+        
         currentAsset.sales[index][field] = numValue;
         console.log(`📝 Updated sale ${index}.${field}: ${oldValue} → ${numValue}`);
     } else if (field === 'date') {
+        currentAsset.sales[index][field] = value;
+        console.log(`📝 Updated sale ${index}.${field}: ${oldValue} → ${value}`);
+    } else if (field === 'walletId') {
+        // If wallet changed, update both old and new wallet amounts
+        if (oldValue !== value && sale.amount > 0) {
+            // Remove amount from old wallet
+            if (oldValue) {
+                updateWalletAmount(oldValue, sale.amount);
+            }
+            // Subtract amount from new wallet
+            if (value) {
+                updateWalletAmount(value, -sale.amount);
+            }
+        }
         currentAsset.sales[index][field] = value;
         console.log(`📝 Updated sale ${index}.${field}: ${oldValue} → ${value}`);
     }
@@ -1680,6 +1711,7 @@ function updateSaleField(index, field, value) {
     
     savePortfolio();
     renderSales();
+    renderWallets(); // Update wallet display
     updateAssetDisplay();
     updateProjections();
     updateProgress();
@@ -1853,6 +1885,13 @@ function addPurchaseRecord() {
 function deletePurchaseRecord(index) {
     const purchases = getPurchases();
     if (index >= 0 && index < purchases.length) {
+        const rec = purchases[index];
+        
+        // If purchase had a wallet and amount, remove the amount from the wallet
+        if (rec.walletId && rec.amount > 0) {
+            updateWalletAmount(rec.walletId, -rec.amount);
+        }
+        
         purchases.splice(index, 1);
         savePurchases(purchases);
         
@@ -1861,6 +1900,7 @@ function deletePurchaseRecord(index) {
         
         updateAssetDisplay();
         renderPurchases();
+        renderWallets(); // Update wallet display
         updateProjections();
         updateProgress();
         updatePurchasesSummary();
@@ -2085,6 +2125,7 @@ function updatePurchaseField(index, field, value) {
     }
     
     const oldValue = currentAsset.purchases[index][field];
+    const purchase = currentAsset.purchases[index];
     
     if (field === 'amount' || field === 'price') {
         // Use parseFloat with fallback parsing
@@ -2101,12 +2142,33 @@ function updatePurchaseField(index, field, value) {
             console.log('❌ Invalid numeric value:', { value, numValue });
             return;
         }
+        
+        // If amount changed and purchase has a wallet, update wallet amount
+        if (field === 'amount' && purchase.walletId && oldValue !== numValue) {
+            const amountDiff = numValue - (parseFloat(oldValue) || 0); // Positive means more purchased, negative means less purchased
+            updateWalletAmount(purchase.walletId, amountDiff);
+        }
+        
         currentAsset.purchases[index][field] = numValue;
         console.log(`📝 Updated purchase ${index}.${field}: ${oldValue} → ${numValue}`);
     } else if (field === 'date') {
         currentAsset.purchases[index][field] = value;
         console.log(`📝 Updated purchase ${index}.${field}: ${oldValue} → ${value}`);
     } else if (field === 'type') {
+        currentAsset.purchases[index][field] = value;
+        console.log(`📝 Updated purchase ${index}.${field}: ${oldValue} → ${value}`);
+    } else if (field === 'walletId') {
+        // If wallet changed, update both old and new wallet amounts
+        if (oldValue !== value && purchase.amount > 0) {
+            // Remove amount from old wallet
+            if (oldValue) {
+                updateWalletAmount(oldValue, -purchase.amount);
+            }
+            // Add amount to new wallet
+            if (value) {
+                updateWalletAmount(value, purchase.amount);
+            }
+        }
         currentAsset.purchases[index][field] = value;
         console.log(`📝 Updated purchase ${index}.${field}: ${oldValue} → ${value}`);
     }
@@ -2116,6 +2178,7 @@ function updatePurchaseField(index, field, value) {
     
     savePortfolio();
     renderPurchases();
+    renderWallets(); // Update wallet display
     updateAssetDisplay();
     updateProjections();
     updateProgress();
@@ -3600,6 +3663,58 @@ function getWalletDisplayName(walletId) {
     const wallets = getWallets();
     const wallet = wallets.find(w => w.id === walletId);
     return wallet ? `${wallet.name} (${wallet.type})` : null;
+}
+
+// Update a specific wallet's amount
+function updateWalletAmount(walletId, amountChange) {
+    if (!walletId || amountChange === 0) return;
+    
+    const wallets = getWallets();
+    const wallet = wallets.find(w => w.id === walletId);
+    
+    if (wallet) {
+        const oldAmount = parseFloat(wallet.amount) || 0;
+        const newAmount = Math.max(0, oldAmount + amountChange);
+        wallet.amount = newAmount;
+        
+        console.log(`🏦 Updated wallet "${wallet.name}" amount: ${oldAmount} → ${newAmount} (${amountChange >= 0 ? '+' : ''}${amountChange})`);
+        
+        saveWallets(wallets);
+    } else {
+        console.warn(`⚠️ Wallet with ID ${walletId} not found`);
+    }
+}
+
+// Sync wallet amounts based on existing purchases and sales
+function syncWalletAmounts() {
+    if (!currentAsset) return;
+    
+    console.log('🔄 Syncing wallet amounts with purchases and sales...');
+    
+    // Reset all wallet amounts to 0 first
+    const wallets = getWallets();
+    wallets.forEach(wallet => {
+        wallet.amount = 0;
+    });
+    
+    // Add amounts from purchases
+    const purchases = getPurchases();
+    purchases.forEach(purchase => {
+        if (purchase.walletId && purchase.amount > 0) {
+            updateWalletAmount(purchase.walletId, purchase.amount);
+        }
+    });
+    
+    // Subtract amounts from sales
+    const sales = getSales();
+    sales.forEach(sale => {
+        if (sale.walletId && sale.amount > 0) {
+            updateWalletAmount(sale.walletId, -sale.amount);
+        }
+    });
+    
+    renderWallets();
+    console.log('✅ Wallet amounts synced');
 }
 
 // Toggle Net Take-Home view between projected and realized (strategy page)

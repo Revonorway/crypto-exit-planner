@@ -543,6 +543,8 @@ async function initializeApp() {
     // Initialize all currency displays with proper formatting
     initializeCurrencyDisplays();
     
+    // Initialize Net Take-Home view preference
+    initializeNetTakeHomeView();
 
     
     // Fetch prices every 30 seconds
@@ -964,6 +966,14 @@ function setupEventListeners() {
             console.log('Currency changed to:', currentCurrency);
         });
     });
+
+    // Net Take-Home toggle
+    const netTakeHomeToggle = document.getElementById('netTakeHomeToggle');
+    if (netTakeHomeToggle) {
+        netTakeHomeToggle.addEventListener('click', function() {
+            toggleNetTakeHomeView();
+        });
+    }
 
     // Asset search
     const searchInput = document.getElementById('assetSearch');
@@ -4122,6 +4132,51 @@ function initializeCurrencyDisplays() {
             element.textContent = element.textContent.replace('$0', zeroValue);
         }
     });
+}
+
+// Toggle Net Take-Home view between projected and realized
+function toggleNetTakeHomeView() {
+    const toggleButton = document.getElementById('netTakeHomeToggle');
+    const projectedBreakdown = document.getElementById('projectedBreakdown');
+    const realizedBreakdown = document.getElementById('realizedBreakdown');
+    const toggleLabel = toggleButton.querySelector('.toggle-label');
+    
+    const currentMode = toggleButton.dataset.mode;
+    const newMode = currentMode === 'projected' ? 'realized' : 'projected';
+    
+    // Update button state
+    toggleButton.dataset.mode = newMode;
+    toggleLabel.textContent = newMode === 'projected' ? 'Projected' : 'Realized';
+    
+    // Toggle content visibility with smooth transition
+    if (newMode === 'projected') {
+        realizedBreakdown.classList.remove('active');
+        setTimeout(() => {
+            projectedBreakdown.classList.add('active');
+        }, 150);
+    } else {
+        projectedBreakdown.classList.remove('active');
+        setTimeout(() => {
+            realizedBreakdown.classList.add('active');
+        }, 150);
+    }
+    
+    // Save user preference
+    const prefs = JSON.parse(localStorage.getItem('cep_user_prefs') || '{}');
+    prefs.netTakeHomeView = newMode;
+    localStorage.setItem('cep_user_prefs', JSON.stringify(prefs));
+}
+
+// Initialize Net Take-Home view from user preferences
+function initializeNetTakeHomeView() {
+    const prefs = JSON.parse(localStorage.getItem('cep_user_prefs') || '{}');
+    const preferredView = prefs.netTakeHomeView || 'projected';
+    
+    const toggleButton = document.getElementById('netTakeHomeToggle');
+    if (toggleButton && preferredView !== 'projected') {
+        // Only toggle if user prefers realized view (projected is default)
+        toggleNetTakeHomeView();
+    }
 }
 
 // Initialize market ticker on page load

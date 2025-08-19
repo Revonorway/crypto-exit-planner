@@ -170,10 +170,16 @@
                         <div class="section-header">
                             <span class="section-icon">💰</span>
                             <span class="section-title">Net Take-Home</span>
+                            <div class="toggle-container">
+                                <button id="netTakeHomeToggle" class="toggle-button" data-mode="projected" title="Toggle between projected and realized values">
+                                    <span class="toggle-label">Projected</span>
+                                    <i class="fas fa-exchange-alt toggle-icon"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="financial-breakdown">
-                            <div class="breakdown-section">
-                                <div class="breakdown-section-title">Projected (Full Exit)</div>
+                            <!-- Projected Values (default visible) -->
+                            <div id="projectedBreakdown" class="breakdown-content active">
                                 <div class="breakdown-item">
                                     <span class="breakdown-label">Net Amount</span>
                                     <span class="breakdown-value tabular positive" id="marketProjectedNetAmount">0</span>
@@ -187,9 +193,8 @@
                                     <span class="breakdown-value tabular muted" id="marketProjectedTithe">0</span>
                                 </div>
                             </div>
-                            <div class="breakdown-divider"></div>
-                            <div class="breakdown-section">
-                                <div class="breakdown-section-title">Already Realized</div>
+                            <!-- Realized Values (hidden by default) -->
+                            <div id="realizedBreakdown" class="breakdown-content">
                                 <div class="breakdown-item">
                                     <span class="breakdown-label">Net Amount</span>
                                     <span class="breakdown-value tabular" id="marketNetAmount">0</span>

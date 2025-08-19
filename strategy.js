@@ -274,6 +274,9 @@ function initializeStrategyPage() {
     // Initialize currency displays
     initializeStrategyCurrencyDisplays();
     
+    // Initialize Net Take-Home view preference
+    initializeStrategyNetTakeHomeView();
+    
     // Fetch prices every 30 seconds
     setInterval(fetchCurrentPrices, 30000);
     // Apply percentage mode UI now that DOM is ready
@@ -302,6 +305,14 @@ function setupEventListeners() {
             console.log('Strategy page: Currency changed to:', currentCurrency);
         });
     });
+
+    // Net Take-Home toggle (strategy page)
+    const strategyNetTakeHomeToggle = document.getElementById('strategyNetTakeHomeToggle');
+    if (strategyNetTakeHomeToggle) {
+        strategyNetTakeHomeToggle.addEventListener('click', function() {
+            toggleStrategyNetTakeHomeView();
+        });
+    }
 
     // Add ladder button
     document.getElementById('addLadderBtn').addEventListener('click', addExitLadder);
@@ -3589,4 +3600,49 @@ function getWalletDisplayName(walletId) {
     const wallets = getWallets();
     const wallet = wallets.find(w => w.id === walletId);
     return wallet ? `${wallet.name} (${wallet.type})` : null;
+}
+
+// Toggle Net Take-Home view between projected and realized (strategy page)
+function toggleStrategyNetTakeHomeView() {
+    const toggleButton = document.getElementById('strategyNetTakeHomeToggle');
+    const projectedBreakdown = document.getElementById('strategyProjectedBreakdown');
+    const realizedBreakdown = document.getElementById('strategyRealizedBreakdown');
+    const toggleLabel = toggleButton.querySelector('.toggle-label');
+    
+    const currentMode = toggleButton.dataset.mode;
+    const newMode = currentMode === 'projected' ? 'realized' : 'projected';
+    
+    // Update button state
+    toggleButton.dataset.mode = newMode;
+    toggleLabel.textContent = newMode === 'projected' ? 'Projected' : 'Realized';
+    
+    // Toggle content visibility with smooth transition
+    if (newMode === 'projected') {
+        realizedBreakdown.classList.remove('active');
+        setTimeout(() => {
+            projectedBreakdown.classList.add('active');
+        }, 150);
+    } else {
+        projectedBreakdown.classList.remove('active');
+        setTimeout(() => {
+            realizedBreakdown.classList.add('active');
+        }, 150);
+    }
+    
+    // Save user preference
+    const prefs = JSON.parse(localStorage.getItem('cep_user_prefs') || '{}');
+    prefs.netTakeHomeView = newMode;
+    localStorage.setItem('cep_user_prefs', JSON.stringify(prefs));
+}
+
+// Initialize Net Take-Home view from user preferences (strategy page)
+function initializeStrategyNetTakeHomeView() {
+    const prefs = JSON.parse(localStorage.getItem('cep_user_prefs') || '{}');
+    const preferredView = prefs.netTakeHomeView || 'projected';
+    
+    const toggleButton = document.getElementById('strategyNetTakeHomeToggle');
+    if (toggleButton && preferredView !== 'projected') {
+        // Only toggle if user prefers realized view (projected is default)
+        toggleStrategyNetTakeHomeView();
+    }
 }

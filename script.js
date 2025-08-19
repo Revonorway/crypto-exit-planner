@@ -1958,6 +1958,9 @@ function updateMarketOverview(totalValue, totalInvested, totalPnL, assetsCount) 
             marketPortfolioValue.textContent = formatCurrency(totalValue);
         }
         
+        // Update rocket animation based on gains
+        updateRocketAnimation(totalPnL);
+        
         // Calculate 24h portfolio change from stored data
         const currentUser = JSON.parse(localStorage.getItem('cep_current_user'));
         const username = currentUser?.username || 'guest';
@@ -4176,6 +4179,32 @@ function initializeNetTakeHomeView() {
     if (toggleButton && preferredView !== 'projected') {
         // Only toggle if user prefers realized view (projected is default)
         toggleNetTakeHomeView();
+    }
+}
+
+// Update rocket animation based on portfolio gains
+function updateRocketAnimation(totalPnL) {
+    const primaryMetricCard = document.querySelector('.primary-metric');
+    const rocketContainer = document.getElementById('portfolioRocket');
+    
+    if (!primaryMetricCard || !rocketContainer) return;
+    
+    // Show rocket when gains are positive
+    if (totalPnL > 0) {
+        primaryMetricCard.setAttribute('data-gains', 'positive');
+        rocketContainer.parentElement.classList.add('active');
+        
+        // Add a little extra boost animation for significant gains
+        if (totalPnL > 10000) { // Adjust threshold as needed
+            rocketContainer.classList.add('super-boost');
+            setTimeout(() => {
+                rocketContainer.classList.remove('super-boost');
+            }, 2000);
+        }
+    } else {
+        primaryMetricCard.removeAttribute('data-gains');
+        rocketContainer.parentElement.classList.remove('active');
+        rocketContainer.classList.remove('super-boost');
     }
 }
 

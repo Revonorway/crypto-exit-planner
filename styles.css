@@ -5112,6 +5112,136 @@ input:checked + .slider:before {
     font-weight: 400;
 }
 
+/* Rocket Animation - "To the Moon" */
+.metric-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+}
+
+.rocket-container {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.rocket-container.active {
+    opacity: 1;
+}
+
+.rocket {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.rocket-body {
+    font-size: 16px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    animation: rocketFloat 2s ease-in-out infinite;
+}
+
+.rocket-trail {
+    position: absolute;
+    top: 50%;
+    left: -2px;
+    width: 8px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #ff6b35, #f7931e, transparent);
+    transform: translateY(-50%);
+    border-radius: 1px;
+    opacity: 0.7;
+    animation: trailFlicker 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes rocketFloat {
+    0%, 100% {
+        transform: translate(-50%, -50%) translateY(0px) rotate(-5deg);
+    }
+    50% {
+        transform: translate(-50%, -50%) translateY(-3px) rotate(5deg);
+    }
+}
+
+@keyframes trailFlicker {
+    0% {
+        opacity: 0.4;
+        width: 6px;
+    }
+    100% {
+        opacity: 0.8;
+        width: 10px;
+    }
+}
+
+/* Show rocket only when gains are positive */
+.primary-metric[data-gains="positive"] .rocket-container {
+    opacity: 1;
+}
+
+.primary-metric[data-gains="positive"] .rocket-body {
+    animation: rocketBoost 1.5s ease-in-out infinite;
+}
+
+@keyframes rocketBoost {
+    0%, 100% {
+        transform: translate(-50%, -50%) translateY(0px) rotate(-10deg);
+    }
+    25% {
+        transform: translate(-50%, -50%) translateY(-2px) rotate(0deg);
+    }
+    50% {
+        transform: translate(-50%, -50%) translateY(-4px) rotate(10deg);
+    }
+    75% {
+        transform: translate(-50%, -50%) translateY(-2px) rotate(0deg);
+    }
+}
+
+/* Super boost animation for significant gains */
+.rocket.super-boost .rocket-body {
+    animation: superBoost 0.8s ease-out infinite;
+}
+
+.rocket.super-boost .rocket-trail {
+    width: 16px !important;
+    opacity: 1 !important;
+    animation: superTrail 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes superBoost {
+    0%, 100% {
+        transform: translate(-50%, -50%) translateY(0px) rotate(-15deg) scale(1);
+    }
+    25% {
+        transform: translate(-50%, -50%) translateY(-6px) rotate(0deg) scale(1.1);
+    }
+    50% {
+        transform: translate(-50%, -50%) translateY(-10px) rotate(15deg) scale(1.2);
+    }
+    75% {
+        transform: translate(-50%, -50%) translateY(-6px) rotate(0deg) scale(1.1);
+    }
+}
+
+@keyframes superTrail {
+    0% {
+        background: linear-gradient(90deg, transparent, #ff6b35, #f7931e, #ffd700, transparent);
+        width: 14px;
+    }
+    100% {
+        background: linear-gradient(90deg, transparent, #ff4500, #ff6b35, #ffd700, #ffff00, transparent);
+        width: 20px;
+    }
+}
+
 .strategy-overview {
     display: flex;
     flex-direction: column;

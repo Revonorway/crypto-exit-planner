@@ -235,7 +235,16 @@
       console.log('Profile page: Access granted');
 
       const userPrefs = JSON.parse(localStorage.getItem('cep_user_prefs') || '{}');
-      const profileKey = `user_profile_default`; // Use default key for now
+      
+      // Wait for authentication to be available
+      let currentUser = window.currentUser;
+      let profileKey = 'user_profile_default';
+      
+      // Check if we have an authenticated user
+      if (currentUser && currentUser.email) {
+        profileKey = `user_profile_${currentUser.email}`;
+      }
+      
       const userProfile = JSON.parse(localStorage.getItem(profileKey) || '{}');
 
       // Elements
@@ -246,10 +255,41 @@
       const avatarFileInput = document.getElementById('avatarFileInput');
 
       // Initialize form fields
-      function initializeForm() {
-        document.getElementById('profileUsername').value = currentUser.username;
+      async function initializeForm() {
+        // Wait for Supabase to be available
+        let retries = 0;
+        while (typeof window.supabase === 'undefined' && retries < 50) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          retries++;
+        }
+        
+        // Get current user data from Supabase if available
+        if (window.supabase && window.currentUser) {
+          const { data: { user } } = await window.supabase.auth.getUser();
+          if (user && user.user_metadata) {
+            // Merge Supabase user metadata with localStorage data
+            if (user.user_metadata.full_name && !userProfile.displayName) {
+              userProfile.displayName = user.user_metadata.full_name;
+            }
+            if (user.user_metadata.avatar_url && !userProfile.avatarUrl) {
+              userProfile.avatarUrl = user.user_metadata.avatar_url;
+            }
+            if (user.email && !userProfile.email) {
+              userProfile.email = user.email;
+            }
+          }
+        }
+        
+        // Set username field (if currentUser has username, otherwise use email)
+        const usernameField = document.getElementById('profileUsername');
+        if (usernameField) {
+          usernameField.value = (currentUser && currentUser.username) ? currentUser.username : 
+                                (window.currentUser ? window.currentUser.email : '');
+        }
+        
+        // Load profile data (localStorage + Supabase metadata)
         document.getElementById('profileDisplayName').value = userProfile.displayName || '';
-        document.getElementById('profileEmail').value = userProfile.email || '';
+        document.getElementById('profileEmail').value = userProfile.email || (window.currentUser ? window.currentUser.email : '');
         
         document.getElementById('prefCurrency').value = userPrefs.currency || 'NOK';
         document.getElementById('prefLocale').value = userPrefs.locale || 'en-GB';
@@ -468,31 +508,58 @@
       });
 
       // Save profile functionality
-      document.getElementById('saveProfileBtn').addEventListener('click', () => {
-        const profileData = {
-          displayName: document.getElementById('profileDisplayName').value.trim(),
-          email: document.getElementById('profileEmail').value.trim(),
-          avatarUrl: userProfile.avatarUrl || ''
-        };
+      document.getElementById('saveProfileBtn').addEventListener('click', async () => {
+        try {
+          const profileData = {
+            displayName: document.getElementById('profileDisplayName').value.trim(),
+            email: document.getElementById('profileEmail').value.trim(),
+            avatarUrl: userProfile.avatarUrl || ''
+          };
 
-        const prefsData = {
-          currency: document.getElementById('prefCurrency').value,
-          theme: document.getElementById('prefTheme').value,
-          locale: document.getElementById('prefLocale').value
-        };
+          const prefsData = {
+            currency: document.getElementById('prefCurrency').value,
+            theme: document.getElementById('prefTheme').value,
+            locale: document.getElementById('prefLocale').value
+          };
 
-        // Save profile
-        localStorage.setItem(profileKey, JSON.stringify(profileData));
-        
-        // Save preferences
-        const currentPrefs = JSON.parse(localStorage.getItem('cep_user_prefs') || '{}');
-        localStorage.setItem('cep_user_prefs', JSON.stringify({ ...currentPrefs, ...prefsData }));
+          // Save to localStorage for local use
+          localStorage.setItem(profileKey, JSON.stringify(profileData));
+          
+          // Save preferences to localStorage
+          const currentPrefs = JSON.parse(localStorage.getItem('cep_user_prefs') || '{}');
+          localStorage.setItem('cep_user_prefs', JSON.stringify({ ...currentPrefs, ...prefsData }));
 
-        // Update current user profile reference
-        Object.assign(userProfile, profileData);
+          // If user is authenticated and Supabase is available, also update Supabase user metadata
+          if (window.currentUser && window.supabase) {
+            console.log('Updating Supabase user metadata...');
+            
+            // Update user metadata in Supabase
+            const { error } = await window.supabase.auth.updateUser({
+              data: {
+                full_name: profileData.displayName,
+                avatar_url: profileData.avatarUrl
+              }
+            });
+            
+            if (error) {
+              console.error('Error updating Supabase profile:', error);
+              alert('Profile saved locally, but failed to sync to cloud: ' + error.message);
+            } else {
+              console.log('Successfully updated Supabase user metadata');
+              alert('Profile saved successfully and synced to cloud!');
+            }
+          } else {
+            alert('Profile saved locally (sign in to sync to cloud)');
+          }
 
-        updateProfileHeader();
-        alert('Profile saved successfully');
+          // Update current user profile reference
+          Object.assign(userProfile, profileData);
+          updateProfileHeader();
+          
+        } catch (error) {
+          console.error('Error saving profile:', error);
+          alert('Error saving profile: ' + error.message);
+        }
       });
 
       // Reset form functionality
@@ -503,9 +570,19 @@
       });
 
       // Initialize the form
-      initializeForm();
+      initializeForm().catch(error => {
+        console.error('Error initializing form:', error);
+        // Fall back to basic initialization if Supabase fails
+        document.getElementById('profileDisplayName').value = userProfile.displayName || '';
+        document.getElementById('profileEmail').value = userProfile.email || '';
+        updateAvatarDisplay();
+        updateProfileHeader();
+      });
 
     })();
   </script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
 </body>
 </html>

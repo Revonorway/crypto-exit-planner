@@ -16,6 +16,8 @@ window.supabase = supabaseClient
 
 // Initialize auth listener (will be called after page loads)
 function initializeAuthListener() {
+    let portfolioLoaded = false; // Prevent multiple loads
+    
     supabaseClient.auth.onAuthStateChange((event, session) => {
         console.log('Auth state change:', event, session ? 'has session' : 'no session');
         
@@ -25,15 +27,19 @@ function initializeAuthListener() {
             window.isAuthenticated = true
             console.log('User signed in:', window.currentUser.email)
             
-            // Supabase session handles authentication state
-            
-            // Always load from Supabase for authenticated users
-            console.log('Loading portfolio from Supabase for authenticated user... (event:', event, ')');
-            loadUserPortfolio()
+            // Only load portfolio once per session, or on explicit SIGNED_IN events
+            if (!portfolioLoaded || event === 'SIGNED_IN') {
+                console.log('Loading portfolio from Supabase for authenticated user... (event:', event, ')');
+                portfolioLoaded = true;
+                loadUserPortfolio()
+            } else {
+                console.log('Portfolio already loaded, skipping reload for event:', event);
+            }
         } else {
             // No session - user signed out
             window.currentUser = null
             window.isAuthenticated = false
+            portfolioLoaded = false; // Reset for next session
             console.log('User signed out or session invalid')
             
             // Clear portfolio data
@@ -52,6 +58,36 @@ function initializeAuthListener() {
             updatePortfolioDisplay()
         }
     })
+}
+
+// Helper function to remove duplicate assets by symbol
+function removeDuplicateAssets(portfolioData) {
+    const seenAssets = new Map();
+    const uniquePortfolio = [];
+    
+    portfolioData.forEach(asset => {
+        const key = asset.symbol.toLowerCase();
+        const existing = seenAssets.get(key);
+        
+        if (!existing) {
+            seenAssets.set(key, asset);
+            uniquePortfolio.push(asset);
+        } else {
+            // Keep the asset with the higher amount
+            const existingAmount = parseFloat(existing.amount) || 0;
+            const currentAmount = parseFloat(asset.amount) || 0;
+            
+            if (currentAmount > existingAmount) {
+                const index = uniquePortfolio.findIndex(a => a.symbol.toLowerCase() === key);
+                if (index !== -1) {
+                    uniquePortfolio[index] = asset;
+                    seenAssets.set(key, asset);
+                }
+            }
+        }
+    });
+    
+    return uniquePortfolio;
 }
 
 // Helper functions for Supabase portfolio management
@@ -84,13 +120,19 @@ async function loadUserPortfolio() {
                 icon: item.icon_url
             }))
             
+            // Clean up any duplicates before setting portfolio
+            const cleanedPortfolio = removeDuplicateAssets(portfolioData);
+            
             // Update portfolio in memory
-            window.portfolio = portfolioData;
+            window.portfolio = cleanedPortfolio;
             if (typeof portfolio !== 'undefined') {
-                portfolio.splice(0, portfolio.length, ...portfolioData);
+                portfolio.splice(0, portfolio.length, ...cleanedPortfolio);
             }
             
-            console.log('✅ Loaded portfolio from Supabase:', portfolioData.length, 'assets')
+            console.log('✅ Loaded portfolio from Supabase:', cleanedPortfolio.length, 'assets');
+            if (cleanedPortfolio.length < portfolioData.length) {
+                console.log(`🧹 Cleaned ${portfolioData.length - cleanedPortfolio.length} duplicate assets during load`);
+            }
         } else {
             // No data in Supabase yet, initialize empty portfolio
             console.log('📂 No portfolio data found in Supabase, starting with empty portfolio');

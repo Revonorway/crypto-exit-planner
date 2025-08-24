@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cleanup Duplicates</title>
+</head>
+<body>
+    <h1>Portfolio Duplicate Cleanup</h1>
+    <button id="cleanupBtn">Clean Up Duplicates Now</button>
+    <div id="output"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script>
+        const output = document.getElementById('output');
+        
+        function log(message) {
+            console.log(message);
+            output.innerHTML += message + '<br>';
+        }
+
+        async function cleanupDuplicates() {
+            log('🧹 Starting duplicate cleanup...');
+            
+            // Wait for Supabase to initialize
+            while (typeof window.supabase === 'undefined') {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            // Check authentication
+            const { data: { session } } = await window.supabase.auth.getSession();
+            if (!session) {
+                log('❌ Not authenticated. Please sign in first.');
+                return;
+            }
+            
+            log('✅ Authenticated as: ' + session.user.email);
+            
+            // Load portfolio from Supabase
+            const { data, error } = await window.supabase
+                .from('user_portfolios')
+                .select('*')
+                .eq('user_id', session.user.id);
+                
+            if (error) {
+                log('❌ Error loading portfolio: ' + error.message);
+                return;
+            }
+            
+            log(`📂 Loaded ${data.length} portfolio entries`);
+            
+            // Convert to portfolio format and show current state
+            const portfolio = data.map(item => ({
+                id: item.asset_id,
+                name: item.asset_name,
+                symbol: item.symbol,
+                amount: parseFloat(item.amount),
+                avgPrice: parseFloat(item.avg_price),
+                exitStrategy: item.exit_strategy || [],
+                wallets: item.wallets || [],
+                sales: item.sales || [],
+                purchases: item.purchases || [],
+                icon: item.icon_url
+            }));
+            
+            log('Current portfolio:');
+            portfolio.forEach(asset => {
+                log(`  ${asset.symbol}: ${asset.amount}`);
+            });
+            
+            // Perform aggressive cleanup
+            const seenAssets = new Map();
+            const uniquePortfolio = [];
+            
+            portfolio.forEach((asset, index) => {
+                const key = asset.symbol.toLowerCase();
+                const existing = seenAssets.get(key);
+                
+                if (!existing) {
+                    log(`✅ Keeping first ${asset.symbol}: ${asset.amount}`);
+                    seenAssets.set(key, asset);
+                    uniquePortfolio.push(asset);
+                } else {
+                    log(`🗑️ Found duplicate ${asset.symbol}: ${asset.amount} (keeping ${existing.amount})`);
+                    
+                    // Keep the one with higher amount
+                    const existingAmount = parseFloat(existing.amount) || 0;
+                    const currentAmount = parseFloat(asset.amount) || 0;
+                    
+                    if (currentAmount > existingAmount) {
+                        const index = uniquePortfolio.findIndex(a => a.symbol.toLowerCase() === key);
+                        if (index !== -1) {
+                            uniquePortfolio[index] = asset;
+                            seenAssets.set(key, asset);
+                            log(`🔄 Replaced with higher amount: ${asset.symbol} ${currentAmount} > ${existingAmount}`);
+                        }
+                    }
+                }
+            });
+            
+            log(`\n🧹 Cleanup result: ${portfolio.length} -> ${uniquePortfolio.length} assets`);
+            
+            if (uniquePortfolio.length < portfolio.length) {
+                log(`💾 Saving cleaned portfolio to Supabase...`);
+                
+                // Delete all existing data
+                await window.supabase
+                    .from('user_portfolios')
+                    .delete()
+                    .eq('user_id', session.user.id);
+                
+                // Insert cleaned data
+                if (uniquePortfolio.length > 0) {
+                    const portfolioData = uniquePortfolio.map(asset => ({
+                        user_id: session.user.id,
+                        asset_id: asset.id,
+                        asset_name: asset.name,
+                        symbol: asset.symbol,
+                        amount: asset.amount,
+                        avg_price: asset.avgPrice,
+                        exit_strategy: asset.exitStrategy,
+                        wallets: asset.wallets,
+                        sales: asset.sales,
+                        purchases: asset.purchases,
+                        icon_url: asset.icon
+                    }));
+                    
+                    const { error: insertError } = await window.supabase
+                        .from('user_portfolios')
+                        .insert(portfolioData);
+                    
+                    if (insertError) {
+                        log('❌ Error saving cleaned portfolio: ' + insertError.message);
+                        return;
+                    }
+                }
+                
+                log('✅ Portfolio cleaned and saved successfully!');
+                log(`🎉 Removed ${portfolio.length - uniquePortfolio.length} duplicate entries`);
+                log('\nYou can now refresh your main portfolio page.');
+                
+            } else {
+                log('ℹ️ No duplicates found to clean up.');
+            }
+        }
+        
+        document.getElementById('cleanupBtn').addEventListener('click', cleanupDuplicates);
+    </script>
+</body>
+</html>

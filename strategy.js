@@ -252,17 +252,12 @@ function showPriceAlertNotification(message) {
 
 // ===== END PRICE ALERT FUNCTIONS =====
 
-// Initialize the strategy page
-document.addEventListener('DOMContentLoaded', function() {
-    initializeStrategyPage();
-});
+// Old initialization replaced with proper Supabase auth handling
 
-function initializeStrategyPage() {
-    initializeTheme();
+function setupStrategyPageUI() {
     setupEventListeners();
 
     loadCachedPrices(); // Load cached prices first
-    loadAssetData();
     fetchCurrentPrices();
     
     // Set correct currency button active state
@@ -455,29 +450,62 @@ function loadAssetData() {
     // Load portfolio from Supabase (loaded by main app auth system)
     let portfolio = window.portfolio || [];
     
-    // If portfolio is empty, user may not be authenticated or data not loaded yet
+    // If portfolio is empty, wait for auth system to initialize
     if (portfolio.length === 0) {
-        console.log('⚠️ Portfolio is empty - user may need to sign in or data is still loading');
+        console.log('⚠️ Portfolio is empty - waiting for auth system to initialize...');
         
-        // Check if user is authenticated
-        if (!window.isAuthenticated) {
-            alert('Please sign in to view your portfolio strategies.');
-            window.location.href = 'auth.html';
-            return;
-        }
+        // Wait for auth system to initialize and determine authentication status
+        let authCheckAttempts = 0;
+        const maxAuthAttempts = 10; // Check for 5 seconds total
         
-        // If authenticated but no portfolio, wait a moment for Supabase to load
-        console.log('🔄 Waiting for portfolio to load from Supabase...');
-        setTimeout(() => {
+        const checkAuthAndPortfolio = () => {
+            authCheckAttempts++;
+            console.log(`🔍 Auth check attempt ${authCheckAttempts}/${maxAuthAttempts}:`, {
+                isAuthenticated: window.isAuthenticated,
+                hasSupabase: typeof window.supabase !== 'undefined',
+                portfolioLength: window.portfolio ? window.portfolio.length : 0
+            });
+            
+            // If we have portfolio data now, proceed
             if (window.portfolio && window.portfolio.length > 0) {
                 console.log('✅ Portfolio loaded, reloading strategy page');
                 window.location.reload();
-            } else {
-                console.log('❌ No portfolio data found after waiting');
-                alert('No portfolio data found. Please add some assets on the main dashboard first.');
-                window.location.href = 'index.html';
+                return;
             }
-        }, 2000); // Wait 2 seconds for Supabase load
+            
+            // If authenticated but still no portfolio, wait a bit more
+            if (window.isAuthenticated === true) {
+                console.log('✅ User is authenticated, waiting for portfolio to load...');
+                if (authCheckAttempts >= maxAuthAttempts) {
+                    console.log('❌ Authenticated but no portfolio data after waiting');
+                    alert('No portfolio data found. Please add some assets on the main dashboard first.');
+                    window.location.href = 'index.html';
+                }
+                return;
+            }
+            
+            // If explicitly not authenticated
+            if (window.isAuthenticated === false) {
+                console.log('❌ User is not authenticated');
+                alert('Please sign in to view your portfolio strategies.');
+                window.location.href = 'auth.html';
+                return;
+            }
+            
+            // If auth status is still undefined, continue waiting
+            if (authCheckAttempts >= maxAuthAttempts) {
+                console.log('❌ Auth system did not initialize within timeout');
+                alert('Authentication system is loading. Please try again in a moment.');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // Continue checking
+            setTimeout(checkAuthAndPortfolio, 500);
+        };
+        
+        // Start checking immediately
+        checkAuthAndPortfolio();
         return;
     }
     
@@ -3736,3 +3764,33 @@ function initializeStrategyNetTakeHomeView() {
         toggleStrategyNetTakeHomeView();
     }
 }
+
+// Initialize strategy page with proper Supabase auth handling
+function initializeStrategyPage() {
+    console.log('🚀 Initializing strategy page...');
+    
+    // Initialize theme and basic UI
+    initializeTheme();
+    setupStrategyPageUI();
+    
+    // Check if Supabase is available
+    if (typeof window.supabase === 'undefined') {
+        console.log('⏳ Waiting for Supabase to load...');
+        setTimeout(initializeStrategyPage, 100);
+        return;
+    }
+    
+    // Initialize Supabase auth listener
+    if (typeof initializeAuthListener === 'function') {
+        console.log('🔐 Initializing Supabase auth listener...');
+        initializeAuthListener();
+    }
+    
+    // Wait a moment for auth to initialize, then load asset data
+    setTimeout(() => {
+        loadAssetData();
+    }, 500);
+}
+
+// Start initialization when DOM is ready
+document.addEventListener('DOMContentLoaded', initializeStrategyPage);

@@ -19,37 +19,31 @@ function initializeAuthListener() {
     supabaseClient.auth.onAuthStateChange((event, session) => {
         console.log('Auth state change:', event, session ? 'has session' : 'no session');
         
-        // Check if user explicitly logged out by checking localStorage
-        const localUser = localStorage.getItem('cep_current_user');
-        const isOfflineMode = localStorage.getItem('cep_offline_mode') === 'true';
-        
-        if (session && localUser && !isOfflineMode) {
-            // Only authenticate if we have both a session AND local auth data
+        if (session && session.user) {
+            // User is authenticated
             window.currentUser = session.user
             window.isAuthenticated = true
             console.log('User signed in:', window.currentUser.email)
-            // Only load user portfolio if we don't already have data, or if this is the initial auth
-            const currentPortfolio = window.portfolio || JSON.parse(localStorage.getItem('portfolio') || '[]');
-            if (currentPortfolio.length === 0 || event === 'INITIAL_SESSION') {
-                console.log('Loading portfolio from Supabase for authenticated user... (event:', event, ')');
-                loadUserPortfolio()
-            } else {
-                console.log('Portfolio already exists, skipping Supabase load (length:', currentPortfolio.length, ')');
-                // Make sure we update auth state but don't reload data
-                if (typeof updateUserInterface === 'function') {
-                    updateUserInterface()
-                }
-            }
+            
+            // Set localStorage marker for consistency
+            localStorage.setItem('cep_current_user', JSON.stringify(session.user));
+            
+            // Always load from Supabase for authenticated users
+            console.log('Loading portfolio from Supabase for authenticated user... (event:', event, ')');
+            loadUserPortfolio()
         } else {
-            // No session OR user logged out OR in offline mode
+            // No session - user signed out
             window.currentUser = null
             window.isAuthenticated = false
             console.log('User signed out or session invalid')
-            // Don't reload portfolio if we already have data
-            const currentPortfolio = window.portfolio || JSON.parse(localStorage.getItem('portfolio') || '[]');
-            if (currentPortfolio.length === 0) {
-                loadLocalPortfolio()
+            
+            // Clear portfolio data
+            window.portfolio = [];
+            if (typeof portfolio !== 'undefined') {
+                portfolio.splice(0, portfolio.length);
             }
+            localStorage.removeItem('portfolio');
+            localStorage.removeItem('cep_current_user');
         }
         
         // Update UI if available
@@ -62,10 +56,10 @@ function initializeAuthListener() {
     })
 }
 
-// Helper functions for gradual migration
+// Helper functions for Supabase portfolio management
 async function loadUserPortfolio() {
     if (!window.isAuthenticated) {
-        loadLocalPortfolio()
+        console.log('User not authenticated, cannot load portfolio from Supabase');
         return
     }
     
@@ -92,186 +86,76 @@ async function loadUserPortfolio() {
                 icon: item.icon_url
             }))
             
-            // Safety check: don't overwrite if we already have more data locally OR if local data seems more recent
-            const currentLocal = window.portfolio || JSON.parse(localStorage.getItem('portfolio') || '[]');
-            
-            // Check if local has more assets
-            if (currentLocal.length > portfolioData.length) {
-                console.log('⚠️ Local portfolio has more assets than Supabase. Keeping local data.');
-                console.log('Local:', currentLocal.length, 'vs Supabase:', portfolioData.length);
-                return;
-            }
-            
-            // Check if local data seems more recent (compare specific assets)
-            let localSeemsFresher = false;
-            if (currentLocal.length === portfolioData.length) {
-                for (let i = 0; i < currentLocal.length; i++) {
-                    const localAsset = currentLocal[i];
-                    const supabaseAsset = portfolioData.find(a => a.id === localAsset.id);
-                    
-                    if (supabaseAsset) {
-                        // Compare critical fields - if local has different values, it might be fresher
-                        const localAmount = parseFloat(localAsset.amount) || 0;
-                        const supabaseAmount = parseFloat(supabaseAsset.amount) || 0;
-                        
-                        // Also compare nested data lengths to detect recent changes
-                        const localExitLevels = localAsset.exitStrategy?.length || 0;
-                        const supabaseExitLevels = supabaseAsset.exitStrategy?.length || 0;
-                        const localWallets = localAsset.wallets?.length || 0;
-                        const supabaseWallets = supabaseAsset.wallets?.length || 0;
-                        const localSales = localAsset.sales?.length || 0;
-                        const supabaseSales = supabaseAsset.sales?.length || 0;
-                        const localPurchases = localAsset.purchases?.length || 0;
-                        const supabasePurchases = supabaseAsset.purchases?.length || 0;
-                        
-                        if (Math.abs(localAmount - supabaseAmount) > 0.001 ||
-                            localExitLevels !== supabaseExitLevels ||
-                            localWallets !== supabaseWallets ||
-                            localSales !== supabaseSales ||
-                            localPurchases !== supabasePurchases) {
-                            
-                            console.log('⚠️ Local asset data differs from Supabase for', localAsset.symbol);
-                            console.log('Local amount:', localAmount, 'vs Supabase amount:', supabaseAmount);
-                            console.log('Local exit levels:', localExitLevels, 'vs Supabase:', supabaseExitLevels);
-                            console.log('Local wallets:', localWallets, 'vs Supabase:', supabaseWallets);
-                            console.log('Local sales:', localSales, 'vs Supabase:', supabaseSales);
-                            console.log('Local purchases:', localPurchases, 'vs Supabase:', supabasePurchases);
-                            
-                            // If local has any different data, keep local data
-                            localSeemsFresher = true;
-                            break;
-                        }
-                    }
-                }
-            }
-            
-            if (localSeemsFresher) {
-                console.log('⚠️ Local portfolio data appears more recent. Keeping local data and syncing to Supabase.');
-                // Instead of loading from Supabase, push local data TO Supabase
-                await migrateLocalToSupabase();
-                return;
-            }
-            
-            // Update both global variable and localStorage
+            // Update portfolio in memory
             window.portfolio = portfolioData;
             if (typeof portfolio !== 'undefined') {
                 portfolio.splice(0, portfolio.length, ...portfolioData);
             }
-            localStorage.setItem('portfolio', JSON.stringify(portfolioData));
             
             console.log('✅ Loaded portfolio from Supabase:', portfolioData.length, 'assets')
-            // updatePortfolioDisplay() will be called after main script loads
         } else {
-            // No data in Supabase yet, migrate from localStorage
-            console.log('📤 No Supabase data found, migrating from localStorage...');
-            await migrateLocalToSupabase()
+            // No data in Supabase yet, initialize empty portfolio
+            console.log('📂 No portfolio data found in Supabase, starting with empty portfolio');
+            window.portfolio = [];
+            if (typeof portfolio !== 'undefined') {
+                portfolio.splice(0, portfolio.length);
+            }
         }
     } catch (error) {
         console.error('Error loading user portfolio:', error)
-        // Fall back to localStorage on error
-        loadLocalPortfolio()
+        // Initialize empty portfolio on error
+        window.portfolio = [];
+        if (typeof portfolio !== 'undefined') {
+            portfolio.splice(0, portfolio.length);
+        }
     }
 }
 
-function loadLocalPortfolio() {
-    // Your existing localStorage logic
-    const portfolioData = JSON.parse(localStorage.getItem('portfolio') || '[]');
-    window.portfolio = portfolioData;
-    if (typeof portfolio !== 'undefined') {
-        portfolio.splice(0, portfolio.length, ...portfolioData);
+// Save portfolio function - Supabase only
+async function savePortfolio() {
+    // Get portfolio from global variable
+    const currentPortfolio = window.portfolio || [];
+    
+    // Only save to Supabase if authenticated
+    if (!window.isAuthenticated || !window.currentUser) {
+        console.log('User not authenticated, cannot save portfolio to Supabase');
+        return;
     }
-    console.log('✅ Loaded portfolio from localStorage:', portfolioData.length, 'assets')
-    // updatePortfolioDisplay() will be called after main script loads
-}
-
-async function migrateLocalToSupabase() {
-    const currentPortfolio = window.portfolio || JSON.parse(localStorage.getItem('portfolio') || '[]');
-    if (!window.isAuthenticated || currentPortfolio.length === 0) return
     
     try {
-        console.log('Migrating', currentPortfolio.length, 'assets to Supabase...')
-        
-        const portfolioData = currentPortfolio.map(asset => ({
-            user_id: window.currentUser.id,
-            asset_id: asset.id,
-            asset_name: asset.name,
-            symbol: asset.symbol,
-            amount: asset.amount,
-            avg_price: asset.avgPrice,
-            exit_strategy: asset.exitStrategy,
-            wallets: asset.wallets,
-            sales: asset.sales,
-            purchases: asset.purchases,
-            icon_url: asset.icon
-        }))
-        
-        // Delete existing data first to avoid duplicates
+        // Delete existing data for this user
         await supabaseClient
             .from('user_portfolios')
             .delete()
             .eq('user_id', window.currentUser.id)
+        
+        // Insert updated data
+        if (currentPortfolio.length > 0) {
+            const portfolioData = currentPortfolio.map(asset => ({
+                user_id: window.currentUser.id,
+                asset_id: asset.id,
+                asset_name: asset.name,
+                symbol: asset.symbol,
+                amount: asset.amount,
+                avg_price: asset.avgPrice,
+                exit_strategy: asset.exitStrategy,
+                wallets: asset.wallets,
+                sales: asset.sales,
+                purchases: asset.purchases,
+                icon_url: asset.icon
+            }))
             
-        // Then insert the new data
-        const { error } = await supabaseClient
-            .from('user_portfolios')
-            .insert(portfolioData)
-        
-        if (error) throw error
-        
-        console.log('✅ Migration successful!')
-        
-        // Optionally clear localStorage after successful migration
-        // localStorage.removeItem('portfolio')
-        
-    } catch (error) {
-        console.error('❌ Migration failed:', error)
-    }
-}
-
-// Enhanced save function that works with both localStorage and Supabase
-async function savePortfolio() {
-    // Get portfolio from global variable or localStorage
-    const currentPortfolio = window.portfolio || JSON.parse(localStorage.getItem('portfolio') || '[]');
-    
-    // Always save to localStorage as backup
-    localStorage.setItem('portfolio', JSON.stringify(currentPortfolio))
-    
-    // Also save to Supabase if authenticated
-    if (window.isAuthenticated && window.currentUser) {
-        try {
-            // Delete existing data for this user
-            await supabaseClient
+            const { error } = await supabaseClient
                 .from('user_portfolios')
-                .delete()
-                .eq('user_id', window.currentUser.id)
+                .insert(portfolioData)
             
-            // Insert updated data
-            if (currentPortfolio.length > 0) {
-                const portfolioData = currentPortfolio.map(asset => ({
-                    user_id: window.currentUser.id,
-                    asset_id: asset.id,
-                    asset_name: asset.name,
-                    symbol: asset.symbol,
-                    amount: asset.amount,
-                    avg_price: asset.avgPrice,
-                    exit_strategy: asset.exitStrategy,
-                    wallets: asset.wallets,
-                    sales: asset.sales,
-                    purchases: asset.purchases,
-                    icon_url: asset.icon
-                }))
-                
-                const { error } = await supabaseClient
-                    .from('user_portfolios')
-                    .insert(portfolioData)
-                
-                if (error) throw error
-            }
-            
-            console.log('✅ Portfolio synced to Supabase')
-        } catch (error) {
-            console.error('❌ Failed to sync to Supabase:', error)
+            if (error) throw error
         }
+        
+        console.log('✅ Portfolio synced to Supabase')
+    } catch (error) {
+        console.error('❌ Failed to sync to Supabase:', error)
+        throw error; // Re-throw to let calling code handle the error
     }
 }
 

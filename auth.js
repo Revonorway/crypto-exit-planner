@@ -18,13 +18,11 @@ function initializeAuth() {
             console.log('No valid session, staying on auth page');
             // Clear any stale localStorage data that might be confusing the app
             localStorage.removeItem('cep_current_user');
-            localStorage.removeItem('cep_offline_mode');
         }
     }).catch(error => {
         console.error('Auth session check failed:', error);
         // Clear any stale data on error
         localStorage.removeItem('cep_current_user');
-        localStorage.removeItem('cep_offline_mode');
     })
 
     // Set up form event listeners
@@ -43,11 +41,7 @@ function setupAuthEventListeners() {
         showSignInForm()
     })
 
-    // Continue offline
-    document.getElementById('continueOffline').addEventListener('click', (e) => {
-        e.preventDefault()
-        continueOffline()
-    })
+
 
     // Sign in form
     document.getElementById('signInFormElement').addEventListener('submit', async (e) => {
@@ -213,13 +207,7 @@ async function handleGoogleAuth() {
     }
 }
 
-function continueOffline() {
-    // Set a flag to indicate offline mode
-    localStorage.setItem('cep_offline_mode', 'true')
-    
-    // Redirect to main app
-    window.location.href = 'index.html'
-}
+
 
 function getAuthErrorMessage(error) {
     switch (error.message) {

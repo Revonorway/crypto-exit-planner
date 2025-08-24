@@ -15,7 +15,6 @@ let selectedAssets = new Set();
 
 // Authentication state
 let isAuthenticated = false;
-let isOfflineMode = false;
 
 // Global helper function for image error handling
 function handleImageError(imgElement, letter) {
@@ -45,37 +44,11 @@ function handleImageError(imgElement, letter) {
 
 // Authentication functions
 async function checkAuthenticationStatus() {
-    // Check if in offline mode
-    isOfflineMode = localStorage.getItem('cep_offline_mode') === 'true';
-    
-    if (isOfflineMode) {
-        console.log('Running in offline mode');
-        isAuthenticated = false;
-        currentUser = null;
-        updateUserInterface();
-        return;
-    }
-    
-    // Check if user explicitly logged out (no localStorage auth data)
-    const localUser = localStorage.getItem('cep_current_user');
-    if (!localUser) {
-        console.log('No local auth data - user logged out or never signed in');
-        isAuthenticated = false;
-        currentUser = null;
-        // Clear any lingering Supabase session
-        if (typeof window.supabase !== 'undefined') {
-            await window.supabase.auth.signOut();
-        }
-        updateUserInterface();
-        return;
-    }
-    
     // Check if Supabase is available
     if (typeof window.supabase === 'undefined') {
-        console.log('Supabase not available, running in offline mode');
-        isOfflineMode = true;
-        isAuthenticated = false;
+        console.error('Supabase not available - authentication required');
         currentUser = null;
+        isAuthenticated = false;
         updateUserInterface();
         return;
     }
@@ -83,26 +56,26 @@ async function checkAuthenticationStatus() {
     try {
         const { data: { session } } = await window.supabase.auth.getSession();
         
-        // Only accept session if it's valid AND we have local auth data
-        if (session && session.user && localUser) {
+        if (session && session.user) {
             currentUser = session.user;
             isAuthenticated = true;
             console.log('User authenticated:', currentUser.email);
+            
+            // Set localStorage marker for consistency
+            localStorage.setItem('cep_current_user', JSON.stringify(currentUser));
         } else {
-            // No valid session or no local auth data
-            console.log('No valid session found or local auth data missing');
+            // No valid session
+            console.log('No valid session found');
             currentUser = null;
             isAuthenticated = false;
-            // Clear any partial auth state
+            // Clear any stale auth state
             localStorage.removeItem('cep_current_user');
-            await window.supabase.auth.signOut();
         }
     } catch (error) {
         console.error('Auth check failed:', error);
-        // Fall back to offline mode on error
-        isOfflineMode = true;
-        isAuthenticated = false;
         currentUser = null;
+        isAuthenticated = false;
+        localStorage.removeItem('cep_current_user');
     }
     
     updateUserInterface();
@@ -138,16 +111,6 @@ function updateUserInterface() {
         // Show sync status
         updateSyncStatus();
         
-    } else if (isOfflineMode) {
-        // Show offline mode
-        userNameLabel.textContent = 'Offline Mode';
-        const userInitials = document.getElementById('userAvatarInitials');
-        userInitials.textContent = 'O';
-        userInitials.style.display = 'flex';
-        document.getElementById('userAvatar').style.display = 'none';
-        
-        // Show offline dropdown options
-        updateDropdownForOffline();
     } else {
         // Not authenticated - show sign in option
         userNameLabel.textContent = 'Sign In';
@@ -156,21 +119,21 @@ function updateUserInterface() {
         userInitials.style.display = 'flex';
         document.getElementById('userAvatar').style.display = 'none';
         
-        // Add sign in option to dropdown instead of overriding the click
+        // Add sign in option to dropdown
         updateDropdownForUnauthenticated();
     }
 }
 
 function updateSyncStatus() {
-    // This will be used to show sync status to the user
+    // Show sync status to the user
     const statusIndicator = document.querySelector('.sync-status');
     if (statusIndicator) {
         if (isAuthenticated) {
             statusIndicator.textContent = 'Synced';
             statusIndicator.className = 'sync-status synced';
         } else {
-            statusIndicator.textContent = 'Local Only';
-            statusIndicator.className = 'sync-status local';
+            statusIndicator.textContent = 'Not Signed In';
+            statusIndicator.className = 'sync-status not-signed-in';
         }
     }
 }
@@ -234,47 +197,6 @@ function updateDropdownForAuthenticated() {
     }
 }
 
-function updateDropdownForOffline() {
-    const userMenuDropdown = document.getElementById('userMenuDropdown');
-    if (userMenuDropdown) {
-        // Update dropdown content for offline mode
-        userMenuDropdown.innerHTML = `
-            <div class="dropdown-card">
-                <a href="auth.html" class="dropdown-item">
-                    <i class="fas fa-sign-in-alt"></i>
-                    <span>Sign In</span>
-                </a>
-                <button id="cleanupBtn" class="dropdown-item">
-                    <i class="fas fa-broom"></i>
-                    <span>Cleanup Duplicates</span>
-                </button>
-            </div>
-        `;
-        
-        // Re-attach cleanup event listener
-        const cleanupBtn = document.getElementById('cleanupBtn');
-        if (cleanupBtn) {
-            cleanupBtn.addEventListener('click', async (e) => {
-                console.log('🔧 Manual cleanup button clicked');
-                e.preventDefault();
-                e.stopPropagation();
-                
-                // Close the dropdown first
-                userMenuDropdown.style.display = 'none';
-                
-                const removed = aggressiveCleanupDuplicates();
-                if (removed) {
-                    updatePortfolioDisplay();
-                    updatePortfolioOverview();
-                    alert('✅ Duplicate cleanup completed! Removed duplicate assets.');
-                } else {
-                    alert('ℹ️ No duplicates found to clean up.');
-                }
-            });
-        }
-    }
-}
-
 function updateDropdownForUnauthenticated() {
     const userMenuDropdown = document.getElementById('userMenuDropdown');
     if (userMenuDropdown) {
@@ -285,10 +207,6 @@ function updateDropdownForUnauthenticated() {
                     <i class="fas fa-sign-in-alt"></i>
                     <span>Sign In</span>
                 </a>
-                <button onclick="localStorage.setItem('cep_offline_mode', 'true'); location.reload()" class="dropdown-item">
-                    <i class="fas fa-wifi-slash"></i>
-                    <span>Continue Offline</span>
-                </button>
             </div>
         `;
     }
@@ -351,10 +269,9 @@ function setupAssetTableEventHandlers() {
 async function handleLogout() {
     console.log('🔧 handleLogout called');
     try {
-        console.log('🔧 isOfflineMode:', isOfflineMode);
         console.log('🔧 window.supabase available:', typeof window.supabase !== 'undefined');
         
-        if (!isOfflineMode && typeof window.supabase !== 'undefined') {
+        if (typeof window.supabase !== 'undefined') {
             console.log('🔧 Attempting Supabase signOut...');
             const { error } = await window.supabase.auth.signOut();
             if (error) {
@@ -368,13 +285,11 @@ async function handleLogout() {
         // Clear ALL authentication data and portfolio data
         console.log('🔧 Clearing all authentication data and portfolio data...');
         localStorage.removeItem('cep_current_user');
-        localStorage.removeItem('cep_offline_mode');
         localStorage.removeItem('portfolio');
         
         // Clear user state
         currentUser = null;
         isAuthenticated = false;
-        isOfflineMode = false;
         
         // Clear window globals and portfolio data
         window.currentUser = null;
@@ -394,7 +309,6 @@ async function handleLogout() {
         console.error('🔧 Logout failed:', error);
         // Force logout on error - clear everything including portfolio
         localStorage.removeItem('cep_current_user');
-        localStorage.removeItem('cep_offline_mode');
         localStorage.removeItem('portfolio');
         console.log('🔧 Force redirecting to auth.html...');
         window.location.href = 'auth.html';
@@ -479,12 +393,10 @@ async function initializeApp() {
     
     setupEventListeners();
     
-    // Load portfolio from localStorage immediately as fallback
-    const localPortfolio = JSON.parse(localStorage.getItem('portfolio') || '[]');
-    portfolio = localPortfolio;
+    // Initialize empty portfolio - data will be loaded from Supabase if authenticated
+    portfolio = [];
     window.portfolio = portfolio;
-    console.log('🔧 Loaded initial portfolio from localStorage:', portfolio.length, 'assets');
-    console.log('🔧 Full portfolio loaded on main page:', localPortfolio);
+    console.log('🔧 Initialized empty portfolio - waiting for Supabase auth/data load');
     
     // Add debugging to track portfolio changes
     let originalPortfolio = [...portfolio];
@@ -496,16 +408,9 @@ async function initializeApp() {
                 timestamp: new Date().toISOString()
             });
             
-            // If portfolio was unexpectedly cleared, try to restore from localStorage
+            // If portfolio was unexpectedly cleared, log it but don't restore from localStorage
             if (portfolio.length === 0 && originalPortfolio.length > 0) {
-                console.log('🔧 Portfolio was cleared! Attempting to restore...');
-                const backup = JSON.parse(localStorage.getItem('portfolio') || '[]');
-                if (backup.length > 0) {
-                    portfolio.splice(0, 0, ...backup);
-                    window.portfolio = portfolio;
-                    console.log('✅ Portfolio restored from localStorage backup');
-                    updatePortfolioDisplay();
-                }
+                console.log('⚠️ Portfolio was unexpectedly cleared! This should not happen with Supabase-only mode.');
             }
             
             originalPortfolio = [...portfolio];
@@ -733,8 +638,7 @@ function savePortfolio() {
     // Update global reference
     window.portfolio = portfolio;
     
-    // Always save to localStorage as backup
-    localStorage.setItem('portfolio', JSON.stringify(portfolio));
+    // Portfolio data is now stored only in Supabase
     
     // Call Supabase save function if available
     if (typeof window.savePortfolioToSupabase === 'function') {

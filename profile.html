@@ -224,8 +224,7 @@
       
       // Check if we're coming from a valid app context
       const hasAppContext = document.referrer.includes(window.location.origin) || 
-                           localStorage.getItem('portfolio') !== null ||
-                           localStorage.getItem('cep_offline_mode') === 'true';
+                           window.isAuthenticated;
       
       if (!hasAppContext) {
         console.log('Profile page: No app context, redirecting to main page');

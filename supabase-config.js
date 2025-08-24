@@ -25,8 +25,7 @@ function initializeAuthListener() {
             window.isAuthenticated = true
             console.log('User signed in:', window.currentUser.email)
             
-            // Set localStorage marker for consistency
-            localStorage.setItem('cep_current_user', JSON.stringify(session.user));
+            // Supabase session handles authentication state
             
             // Always load from Supabase for authenticated users
             console.log('Loading portfolio from Supabase for authenticated user... (event:', event, ')');
@@ -43,7 +42,6 @@ function initializeAuthListener() {
                 portfolio.splice(0, portfolio.length);
             }
             localStorage.removeItem('portfolio');
-            localStorage.removeItem('cep_current_user');
         }
         
         // Update UI if available

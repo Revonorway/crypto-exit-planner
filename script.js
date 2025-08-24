@@ -61,8 +61,7 @@ async function checkAuthenticationStatus() {
             isAuthenticated = true;
             console.log('User authenticated:', currentUser.email);
             
-            // Set localStorage marker for consistency
-            localStorage.setItem('cep_current_user', JSON.stringify(currentUser));
+            // Supabase session is the source of truth for authentication
         } else {
             // No valid session
             console.log('No valid session found');
@@ -459,7 +458,7 @@ async function initializeApp() {
 function initTimeframeToggle() {
     const tfEl = document.getElementById('timeframeToggle');
     if (!tfEl) return;
-    const key = currentUser ? `cep_tf_${currentUser.username}` : 'cep_tf';
+    const key = currentUser ? `cep_tf_${currentUser.email}` : 'cep_tf';
     const saved = localStorage.getItem(key) || 'baseline';
     [...tfEl.querySelectorAll('.seg-btn')].forEach(btn => {
         btn.classList.toggle('active', btn.dataset.timeframe === saved);
@@ -475,7 +474,7 @@ function initTimeframeToggle() {
 function initCompactToggle() {
     const btn = document.getElementById('compactToggleBtn');
     if (!btn) return;
-    const key = currentUser ? `cep_compact_${currentUser.username}` : 'cep_compact';
+    const key = currentUser ? `cep_compact_${currentUser.email}` : 'cep_compact';
     const saved = localStorage.getItem(key) === '1';
     const grid = document.querySelector('.overview-grid');
     if (saved && grid) grid.classList.add('compact');
@@ -497,10 +496,8 @@ function initRefreshControls() {
 }
 
 function initializeAuth() {
-    // Basic local-only auth with salted hash stored in localStorage
-    const savedUser = localStorage.getItem('cep_current_user');
-    currentUser = savedUser ? JSON.parse(savedUser) : null;
-    const overlay = document.getElementById('authOverlay');
+    // Auth is now handled by Supabase - this function just sets up UI event listeners
+    console.log('Setting up auth UI event listeners...');
 
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
@@ -573,65 +570,11 @@ function initializeAuth() {
     }
 }
 
-function handleRegister() {
-    const username = (document.getElementById('registerUsername').value || '').trim();
-    const password = (document.getElementById('registerPassword').value || '').trim();
-    const err = document.getElementById('registerError');
-    if (!username || !password) {
-        err.textContent = 'Enter username and password';
-        err.style.display = 'block';
-        return;
-    }
-    const users = JSON.parse(localStorage.getItem('cep_users') || '{}');
-    if (users[username]) {
-        err.textContent = 'Username already exists';
-        err.style.display = 'block';
-        return;
-    }
-    const salt = generateSalt();
-    const hash = hashPassword(password, salt);
-    users[username] = { salt, hash };
-    localStorage.setItem('cep_users', JSON.stringify(users));
-    // Auto-login
-    currentUser = { username };
-    localStorage.setItem('cep_current_user', JSON.stringify(currentUser));
-    // Create per-user portfolio namespace
-    if (!localStorage.getItem(storageKeyForPortfolio())) {
-        localStorage.setItem(storageKeyForPortfolio(), JSON.stringify([]));
-    }
-    loadUserPortfolio();
-    document.getElementById('authOverlay').style.display = 'none';
-}
+// Old local authentication functions removed - now using Supabase
 
-function handleLogin() {
-    const username = (document.getElementById('loginUsername').value || '').trim();
-    const password = (document.getElementById('loginPassword').value || '').trim();
-    const err = document.getElementById('loginError');
-    const users = JSON.parse(localStorage.getItem('cep_users') || '{}');
-    const rec = users[username];
-    if (!rec) {
-        err.textContent = 'Invalid username or password';
-        err.style.display = 'block';
-        return;
-    }
-    const calc = hashPassword(password, rec.salt);
-    if (calc !== rec.hash) {
-        err.textContent = 'Invalid username or password';
-        err.style.display = 'block';
-        return;
-    }
-    currentUser = { username };
-    localStorage.setItem('cep_current_user', JSON.stringify(currentUser));
-    loadUserPortfolio();
-    document.getElementById('authOverlay').style.display = 'none';
-}
 
-function storageKeyForPortfolio() {
-    // Always use unified 'portfolio' key for consistency
-    return 'portfolio';
-}
 
-// loadUserPortfolio() function moved to supabase-config.js
+// Old localStorage portfolio functions removed - now using Supabase
 
 // Use the enhanced savePortfolio from supabase-config.js if available
 function savePortfolio() {
@@ -646,25 +589,7 @@ function savePortfolio() {
     }
 }
 
-function generateSalt() {
-    return Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
-}
-
-function hashPassword(password, salt) {
-    // Simple SHA-256 via SubtleCrypto if available; fallback to naive hash
-    try {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(password + ':' + salt);
-        // Note: SubtleCrypto is async; here we use a synchronous fallback for simplicity
-    } catch {}
-    // Fallback: djb2-like
-    let hash = 5381;
-    const str = password + ':' + salt;
-    for (let i = 0; i < str.length; i++) {
-        hash = ((hash << 5) + hash) ^ str.charCodeAt(i);
-    }
-    return String(hash >>> 0);
-}
+// Old password hashing functions removed - now using Supabase auth
 
 // Clean up duplicate assets and migrate any saved Cronos entries
 function migrateCronosIdIfNeeded() {
@@ -935,7 +860,7 @@ function setupEventListeners() {
         const avatarImg = document.getElementById('userAvatar');
         const avatarInitials = document.getElementById('userAvatarInitials');
         const nameLabel = document.getElementById('userNameLabel');
-        const prof = currentUser ? JSON.parse(localStorage.getItem(`user_profile_${currentUser.username}`)||'{}') : null;
+        const prof = currentUser ? JSON.parse(localStorage.getItem(`user_profile_${currentUser.email}`)||'{}') : null;
         if (prof && prof.avatarUrl) {
             avatarImg.src = prof.avatarUrl;
             avatarImg.style.display = 'inline-block';
@@ -1777,7 +1702,7 @@ function updatePortfolioOverview() {
     if (pnlChip) pnlChip.firstChild && (pnlChip.firstChild.nodeValue = `P&L ${formatCurrency(totalPnL)} `);
     const pnlBadge = document.getElementById('totalPnlBadge');
     if (pnlBadge) {
-        const userKey = currentUser ? currentUser.username : 'guest';
+        const userKey = currentUser ? currentUser.email : 'guest';
         const lastKey = `pnl_last_total_${userKey}`;
         const lastPnL = parseFloat(localStorage.getItem(lastKey) || '0');
         const deltaAbs = totalPnL - lastPnL;
@@ -1813,10 +1738,10 @@ function updatePortfolioOverview() {
 
     // Baseline trend chip for Total Value and portfolio sparkline
     try {
-        const tfKey = currentUser ? `cep_tf_${currentUser.username}` : 'cep_tf';
+        const tfKey = currentUser ? `cep_tf_${currentUser.email}` : 'cep_tf';
         const timeframe = localStorage.getItem(tfKey) || 'baseline';
         const trendEl = document.getElementById('totalValueTrend');
-        const baseKey = currentUser ? `base_total_${currentUser.username}` : 'base_total';
+        const baseKey = currentUser ? `base_total_${currentUser.email}` : 'base_total';
         const last = parseFloat(localStorage.getItem(baseKey)||'');
         if (trendEl && !isNaN(last) && last>0) {
             const delta = totalValue - last;
@@ -1826,7 +1751,7 @@ function updatePortfolioOverview() {
         }
         if (timeframe==='baseline') localStorage.setItem(baseKey, String(totalValue));
         // Sparkline history
-        const histKey = currentUser ? `spark_port_${currentUser.username}` : 'spark_port';
+        const histKey = currentUser ? `spark_port_${currentUser.email}` : 'spark_port';
         const hist = JSON.parse(localStorage.getItem(histKey)||'[]');
         hist.push({ t: Date.now(), v: totalValue });
         while (hist.length>30) hist.shift();
@@ -1866,9 +1791,8 @@ function updateMarketOverview(totalValue, totalInvested, totalPnL, assetsCount) 
         updateRocketAnimation(totalPnL);
         
         // Calculate 24h portfolio change from stored data
-        const currentUser = JSON.parse(localStorage.getItem('cep_current_user'));
-        const username = currentUser?.username || 'guest';
-        const pnlKey = `pnl_last_total_${username}`;
+        const userKey = (window.currentUser && window.currentUser.email) ? window.currentUser.email : 'guest';
+        const pnlKey = `pnl_last_total_${userKey}`;
         const lastPnL = parseFloat(localStorage.getItem(pnlKey)) || 0;
         const pnlDelta = totalPnL - lastPnL;
         const pnlPercentage = lastPnL !== 0 ? (pnlDelta / Math.abs(lastPnL)) * 100 : 0;
@@ -2129,11 +2053,10 @@ function updatePerformanceWidgets(totalPnL, exitData) {
 
 function renderMarketCharts(totalValue) {
     // Render sparklines for market overview
-    const currentUser = JSON.parse(localStorage.getItem('cep_current_user'));
-    const username = currentUser?.username || 'guest';
+    const userKey = (window.currentUser && window.currentUser.email) ? window.currentUser.email : 'guest';
     
     // Portfolio chart
-    const portfolioKey = `spark_port_${username}`;
+    const portfolioKey = `spark_port_${userKey}`;
     const portfolioHistory = JSON.parse(localStorage.getItem(portfolioKey) || '[]');
     if (portfolioHistory.length > 0) {
         renderSparkline('marketPortfolioChart', portfolioHistory.map(p => p.v));
@@ -2286,7 +2209,7 @@ function updateExitProjections() {
 
     // Exit sparkline history
     try {
-        const histKey = currentUser ? `spark_exit_${currentUser.username}` : 'spark_exit';
+        const histKey = currentUser ? `spark_exit_${currentUser.email}` : 'spark_exit';
         const hist = JSON.parse(localStorage.getItem(histKey)||'[]');
         hist.push({ t: Date.now(), v: totalExitValue });
         while (hist.length>30) hist.shift();
@@ -2344,7 +2267,7 @@ function updateExitProjections() {
             }
             // Closest asset sparkline history (approx using price)
             try {
-                const cHistKey = currentUser ? `spark_closest_${currentUser.username}` : 'spark_closest';
+                const cHistKey = currentUser ? `spark_closest_${currentUser.email}` : 'spark_closest';
                 const ch = JSON.parse(localStorage.getItem(cHistKey)||'[]');
                 ch.push({ t: Date.now(), v: price });
                 while (ch.length>30) ch.shift();
@@ -2359,7 +2282,7 @@ function updateExitProjections() {
 
     // Net take-home sparkline history
     try {
-        const histKey = currentUser ? `spark_net_${currentUser.username}` : 'spark_net';
+        const histKey = currentUser ? `spark_net_${currentUser.email}` : 'spark_net';
         const hist = JSON.parse(localStorage.getItem(histKey)||'[]');
         hist.push({ t: Date.now(), v: totalNetAfterTaxTithe });
         while (hist.length>30) hist.shift();
@@ -2609,9 +2532,9 @@ function migrateCorruptedData() {
         ];
         
         // Add user-specific keys
-        const currentUser = JSON.parse(localStorage.getItem('cep_current_user') || 'null');
-        if (currentUser) {
-            portfolioKeys.push(`cryptoPortfolio_${currentUser.username}`);
+        // Legacy migration code - checking for old data patterns
+        if (window.currentUser && window.currentUser.email) {
+            portfolioKeys.push(`cryptoPortfolio_${window.currentUser.email}`);
         }
         
         portfolioKeys.forEach(key => {
@@ -3528,12 +3451,12 @@ function getBasePrice(symbol) {
 
 
 function saveSortPreference() {
-    const key = currentUser ? `sort_preference_${currentUser.username}` : 'sort_preference';
+    const key = currentUser ? `sort_preference_${currentUser.email}` : 'sort_preference';
     localStorage.setItem(key, currentSortPreference);
 }
 
 function loadSortPreference() {
-    const key = currentUser ? `sort_preference_${currentUser.username}` : 'sort_preference';
+    const key = currentUser ? `sort_preference_${currentUser.email}` : 'sort_preference';
     const saved = localStorage.getItem(key);
     currentSortPreference = saved || 'name';
     
@@ -3619,11 +3542,11 @@ function syncToCloud() {
                     currency: selectedCurrency
                 },
                 lastSyncTime: new Date().toISOString(),
-                userId: currentUser.username
+                userId: currentUser.email
             };
             
             // Store in localStorage as "cloud" data
-            localStorage.setItem(`cep_cloud_${currentUser.username}`, JSON.stringify(syncData));
+            localStorage.setItem(`cep_cloud_${currentUser.email}`, JSON.stringify(syncData));
             localStorage.setItem('cep_sync_data', JSON.stringify({
                 lastSyncTime: syncData.lastSyncTime,
                 syncStatus: 'synced'
@@ -3667,7 +3590,7 @@ function syncFromCloud() {
     // Simulate cloud sync (replace with actual cloud service)
     setTimeout(() => {
         try {
-            const cloudData = localStorage.getItem(`cep_cloud_${currentUser.username}`);
+            const cloudData = localStorage.getItem(`cep_cloud_${currentUser.email}`);
             if (cloudData) {
                 const parsed = JSON.parse(cloudData);
                 

@@ -130,8 +130,7 @@ async function handleSignIn() {
 
         if (error) throw error
 
-        // Success! Set local auth data and redirect to main app
-        localStorage.setItem('cep_current_user', JSON.stringify(data.user))
+        // Success! Redirect to main app (Supabase session will handle auth state)
         window.location.href = 'index.html'
 
     } catch (error) {
@@ -176,8 +175,7 @@ async function handleSignUp() {
             showLoading(false)
             showError('Please check your email and click the confirmation link to complete registration.')
         } else {
-            // Success! Set local auth data and redirect to main app
-            localStorage.setItem('cep_current_user', JSON.stringify(data.user))
+            // Success! Redirect to main app (Supabase session will handle auth state)
             window.location.href = 'index.html'
         }
 

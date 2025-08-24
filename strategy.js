@@ -6,9 +6,8 @@ let priceChanges24h = {};
 let currentEditSaleIndex = null;
 let currentEditPurchaseIndex = null;
 let percentageMode = (function(){
-    const cu = JSON.parse(localStorage.getItem('cep_current_user')||'null');
-    if (!cu) return localStorage.getItem('cep_percentage_mode') || 'remaining';
-    return localStorage.getItem(`cep_percentage_mode_${cu.username}`) || 'remaining';
+    // Use global preference for percentage mode
+    return localStorage.getItem('cep_percentage_mode') || 'remaining';
 })();
 
 // Currency conversion rates
@@ -427,9 +426,8 @@ function setPercentageMode(mode) {
         updateProgress();
     }
     percentageMode = mode;
-    const cu = JSON.parse(localStorage.getItem('cep_current_user')||'null');
-    if (cu) localStorage.setItem(`cep_percentage_mode_${cu.username}`, percentageMode);
-    else localStorage.setItem('cep_percentage_mode', percentageMode);
+    // Use global preference for percentage mode
+    localStorage.setItem('cep_percentage_mode', percentageMode);
     applyPercentageModeUI();
 }
 
@@ -597,7 +595,7 @@ function updateAssetDisplay() {
     if (totalPnLEl) totalPnLEl.textContent = formatCurrency(pnl);
     const assetPnlBadge = document.getElementById('assetPnlBadge');
     if (assetPnlBadge) {
-        const userKey = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.username : 'guest';
+        const userKey = (window.currentUser && window.currentUser.email) ? window.currentUser.email : 'guest';
         const lastKey = `pnl_last_${userKey}_${currentAsset.id}`;
         const lastPnL = parseFloat(localStorage.getItem(lastKey) || '0');
         const deltaAbs = pnl - lastPnL;

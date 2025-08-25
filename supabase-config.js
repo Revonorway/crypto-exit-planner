@@ -31,9 +31,24 @@ function initializeAuthListener() {
             if (!portfolioLoaded || event === 'SIGNED_IN') {
                 console.log('Loading portfolio from Supabase for authenticated user... (event:', event, ')');
                 portfolioLoaded = true;
-                loadUserPortfolio()
+                loadUserPortfolio().then(() => {
+                    // Update UI after portfolio is loaded
+                    if (typeof updateUserInterface === 'function') {
+                        updateUserInterface()
+                    }
+                    if (typeof updatePortfolioDisplay === 'function') {
+                        updatePortfolioDisplay()
+                    }
+                })
             } else {
                 console.log('Portfolio already loaded, skipping reload for event:', event);
+                // Still update UI for already loaded portfolio
+                if (typeof updateUserInterface === 'function') {
+                    updateUserInterface()
+                }
+                if (typeof updatePortfolioDisplay === 'function') {
+                    updatePortfolioDisplay()
+                }
             }
         } else {
             // No session - user signed out
@@ -48,14 +63,14 @@ function initializeAuthListener() {
                 portfolio.splice(0, portfolio.length);
             }
             localStorage.removeItem('portfolio');
-        }
-        
-        // Update UI if available
-        if (typeof updateUserInterface === 'function') {
-            updateUserInterface()
-        }
-        if (typeof updatePortfolioDisplay === 'function') {
-            updatePortfolioDisplay()
+            
+            // Update UI for signed out state
+            if (typeof updateUserInterface === 'function') {
+                updateUserInterface()
+            }
+            if (typeof updatePortfolioDisplay === 'function') {
+                updatePortfolioDisplay()
+            }
         }
     })
 }

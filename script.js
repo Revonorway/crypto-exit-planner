@@ -1790,19 +1790,15 @@ function updateMarketOverview(totalValue, totalInvested, totalPnL, assetsCount) 
         // Update rocket animation based on gains
         updateRocketAnimation(totalPnL);
         
-        // Calculate 24h portfolio change from stored data
-        const userKey = (window.currentUser && window.currentUser.email) ? window.currentUser.email : 'guest';
-        const pnlKey = `pnl_last_total_${userKey}`;
-        const lastPnL = parseFloat(localStorage.getItem(pnlKey)) || 0;
-        const pnlDelta = totalPnL - lastPnL;
-        const pnlPercentage = lastPnL !== 0 ? (pnlDelta / Math.abs(lastPnL)) * 100 : 0;
+        // Calculate portfolio percentage based on total invested vs current value
+        const pnlPercentage = totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0;
         
         const marketPortfolioTrend = document.getElementById('marketPortfolioTrend');
         if (marketPortfolioTrend) {
-            const arrow = pnlDelta >= 0 ? '↗' : '↘';
-            const sign = pnlDelta >= 0 ? '+' : '';
+            const arrow = totalPnL >= 0 ? '↗' : '↘';
+            const sign = totalPnL >= 0 ? '+' : '';
             marketPortfolioTrend.textContent = `${arrow} ${sign}${formatPercentage(pnlPercentage)}`;
-            marketPortfolioTrend.className = `trend-indicator ${pnlDelta >= 0 ? 'positive' : 'negative'}`;
+            marketPortfolioTrend.className = `trend-indicator ${totalPnL >= 0 ? 'positive' : 'negative'}`;
         }
         
         // Calculate exit strategy data

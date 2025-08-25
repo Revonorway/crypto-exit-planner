@@ -33,22 +33,9 @@
                     </button>
                 </form>
                 
-                <div class="auth-divider">
-                    <span>or</span>
-                </div>
-                
-                <button id="googleSignInBtn" class="btn btn-secondary auth-btn">
-                    <i class="fab fa-google"></i> Continue with Google
-                </button>
-                
                 <p class="auth-switch">
                     Don't have an account? 
                     <a href="#" id="showSignUp">Create one</a>
-                </p>
-                
-                <p class="auth-switch">
-                    <a href="#" id="continueOffline">Continue Offline</a>
-                    <small>(Your data won't sync between devices)</small>
                 </p>
             </div>
 
@@ -73,14 +60,6 @@
                         <i class="fas fa-user-plus"></i> Create Account
                     </button>
                 </form>
-                
-                <div class="auth-divider">
-                    <span>or</span>
-                </div>
-                
-                <button id="googleSignUpBtn" class="btn btn-secondary auth-btn">
-                    <i class="fab fa-google"></i> Sign up with Google
-                </button>
                 
                 <p class="auth-switch">
                     Already have an account? 
@@ -159,6 +138,36 @@
     justify-content: center;
     margin-bottom: 1rem;
     height: 44px;
+}
+
+.auth-form .input-group {
+    margin-bottom: 1rem;
+}
+
+.auth-form .input-group input {
+    height: 44px;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.auth-form .input-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.auth-form .input-group label {
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .auth-divider {
